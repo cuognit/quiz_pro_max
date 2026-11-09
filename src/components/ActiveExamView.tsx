@@ -169,7 +169,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const isTimePulsing = session.totalDurationSeconds > 0 && remainingSeconds < 60; // < 1 min
 
   return (
-    <div className="min-h-screen bg-[#f4f8fd] dark:bg-[#152230] text-[#1a2837] dark:text-[#f0f6fc] flex flex-col transition-colors">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col transition-colors">
       {/* Sticky Exam HUD */}
       <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#152230]/90 backdrop-blur-md border-b border-[#dceeff] dark:border-[#293d52] shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">

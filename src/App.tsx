@@ -26,10 +26,10 @@ import {
 } from './utils/storage';
 import {
   ThemeMode,
+  CustomPalette,
   getThemePreference,
   setThemePreference,
-  applyTheme,
-  setupThemeListener
+  applyTheme
 } from './utils/theme';
 
 const allQuestions = questionsData as Question[];
@@ -104,15 +104,11 @@ export default function App() {
   // Initialize theme
   useEffect(() => {
     applyTheme(theme);
-    const cleanup = setupThemeListener(() => {
-      // System theme change handled
-    });
-    return cleanup;
   }, [theme]);
 
-  const handleThemeChange = (newTheme: ThemeMode) => {
+  const handleThemeChange = (newTheme: ThemeMode, customPalette?: CustomPalette) => {
     setTheme(newTheme);
-    setThemePreference(newTheme);
+    setThemePreference(newTheme, customPalette);
   };
 
   // Load storage state on mount
@@ -437,24 +433,16 @@ export default function App() {
   const isCurrentlyInExam = activeSession && isExamActive;
 
   return (
-    <div className="min-h-screen bg-[#f4f8fd] dark:bg-[#152230] flex flex-col font-sans text-[#152230] dark:text-[#f4f8fd] transition-colors selection:bg-[#4f80b9] selection:text-white">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans transition-colors selection:bg-[#4f80b9] selection:text-white">
       {/* Top Navbar (hidden during active exam to give max focus) */}
       {!isCurrentlyInExam && (
         <Navbar
           activeTab={activeTab}
           onSelectTab={handleSelectTab}
           mistakesCount={mistakesCount}
-          bookmarksCount={bookmarksCount}
           historyCount={historyCount}
           theme={theme}
           onThemeChange={handleThemeChange}
-          onOpenBookmarks={() => {
-            setDirection(1);
-            setCurrentResult(null);
-            setFilterBookmarksOnly(true);
-            setActiveTab('bank');
-            window.scrollTo({ top: 0, behavior: 'instant' });
-          }}
         />
       )}
 

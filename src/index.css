@@ -3,24 +3,46 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  :root {
+  :root, [data-theme="ice"], .theme-ice {
     --bg-canvas: #f4f8fd;
     --text-primary: #152230;
     --card-surface: #ffffff;
+    --bg-header: rgba(255, 255, 255, 0.92);
+    --btn-primary: #4f80b9;
+    --btn-primary-text: #ffffff;
     --border-subtle: #dceeff;
+    --hover-bg: #dceeff;
     --color-cobalt: #4f80b9;
     --color-butter: #fff7cc;
     --color-navy: #152230;
   }
 
-  .dark {
+  .dark, [data-theme="dark"] {
     --bg-canvas: #152230;
     --text-primary: #f4f8fd;
     --card-surface: #1c2c3d;
+    --bg-header: rgba(21, 34, 48, 0.92);
+    --btn-primary: #4f80b9;
+    --btn-primary-text: #ffffff;
     --border-subtle: #293d52;
+    --hover-bg: #1c2c3d;
     --color-cobalt: #7da7d9;
     --color-butter: #fff7cc;
     --color-navy: #152230;
+  }
+
+  [data-theme="custom"], .theme-custom {
+    --bg-canvas: #dceeff;
+    --text-primary: #2f4860;
+    --card-surface: #ffffff;
+    --bg-header: #ffffff;
+    --btn-primary: #7da7d9;
+    --btn-primary-text: #ffffff;
+    --border-subtle: #dceeff;
+    --hover-bg: #fff7cc;
+    --color-cobalt: #7da7d9;
+    --color-butter: #fff7cc;
+    --color-navy: #2f4860;
   }
 
   * {
@@ -93,4 +115,52 @@ select:disabled {
 ::selection {
   background-color: #7da7d9;
   color: #152230;
+}
+
+/* Dynamic styling overrides for custom theme */
+[data-theme="custom"] .bg-white,
+.theme-custom .bg-white {
+  background-color: var(--card-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="custom"] header.sticky,
+.theme-custom header.sticky {
+  background-color: var(--bg-header) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="custom"] \.border-\[\#dceeff\],
+.theme-custom \.border-\[\#dceeff\],
+[data-theme="custom"] .border-slate-200,
+.theme-custom .border-slate-200 {
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="custom"] table,
+.theme-custom table,
+[data-theme="custom"] th,
+.theme-custom th,
+[data-theme="custom"] td,
+.theme-custom td {
+  border-color: var(--border-subtle) !important;
+}
+
+[data-theme="custom"] th,
+.theme-custom th {
+  background-color: var(--hover-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="custom"] .bg-\[\#4f80b9\],
+.theme-custom .bg-\[\#4f80b9\] {
+  background-color: var(--btn-primary) !important;
+  color: var(--btn-primary-text) !important;
+}
+
+[data-theme="custom"] footer,
+.theme-custom footer {
+  background-color: var(--bg-header) !important;
+  border-color: var(--border-subtle) !important;
 }
