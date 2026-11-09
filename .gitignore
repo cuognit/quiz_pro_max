@@ -1,0 +1,20 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Temporary test & browser automation artifacts
+.playwright-cli/
+*.tmp
+*.xml
+*.txt
+
+# Exclude heavy attachments from git push to prevent GitHub API payload limits
+*.pdf
+public/assets/
+public/assets/aistudio/
+

@@ -1,0 +1,8 @@
+{
+  "name": "SQA Quiz Pro - Luyện Thi Trắc Nghiệm Kiểm Định Phần Mềm",
+  "description": "Hệ thống luyện thi trắc nghiệm trực tuyến môn Đánh giá và kiểm định chất lượng phần mềm (SQA) với toàn bộ ngân hàng câu hỏi chuẩn, chấm điểm tự động, tùy chỉnh thời gian, lưu bài dở dang và phân tích kết quả chuyên sâu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
