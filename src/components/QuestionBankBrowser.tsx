@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
   Search,
@@ -18,21 +18,29 @@ import { FormattedQuestionText } from './FormattedQuestionText';
 interface QuestionBankBrowserProps {
   questions: Question[];
   onPracticeFiltered: (questionsToPractice: Question[]) => void;
+  filterBookmarksOnly?: boolean;
 }
 
 export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
   questions,
-  onPracticeFiltered
+  onPracticeFiltered,
+  filterBookmarksOnly = false
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedGroup, setSelectedGroup] = useState<number | 'all'>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [selectedCdr, setSelectedCdr] = useState<string>('all');
   const [showOnlyDiagrams, setShowOnlyDiagrams] = useState<boolean>(false);
-  const [showOnlyBookmarks, setShowOnlyBookmarks] = useState<boolean>(false);
+  const [showOnlyBookmarks, setShowOnlyBookmarks] = useState<boolean>(filterBookmarksOnly);
   const [revealedAnswers, setRevealedAnswers] = useState<Record<string, boolean>>({});
   const [hideAllAnswers, setHideAllAnswers] = useState<boolean>(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(getBookmarks());
+
+  useEffect(() => {
+    if (filterBookmarksOnly) {
+      setShowOnlyBookmarks(true);
+    }
+  }, [filterBookmarksOnly]);
 
   const handleToggleBookmark = (qId: string) => {
     toggleBookmarkStorage(qId);
@@ -76,19 +84,19 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 space-y-6 animate-fadeIn">
+    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-[#e6f1fc] dark:bg-[#152230] text-[#4f80b9] dark:text-[#7da7d9] flex items-center justify-center border border-[#d0e4f7] dark:border-[#2e4359]">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900">
+            <h1 className="text-2xl font-extrabold text-[#152230] dark:text-[#f4f8fd]">
               Ngân Hàng 300 Câu Hỏi SQA
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-[#a6c5e8] mt-1">
             Tra cứu và học tập toàn bộ ngân hàng câu hỏi môn Đánh giá và kiểm định chất lượng phần mềm
           </p>
         </div>
@@ -96,7 +104,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleToggleAllAnswers}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-[#2e4359] bg-white dark:bg-[#1c2c3d] hover:bg-[#f4f8fd] dark:hover:bg-[#233446] text-slate-700 dark:text-[#dceeff] transition-colors shadow-xs"
           >
             {hideAllAnswers ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
             <span>{hideAllAnswers ? 'Hiện đáp án tất cả' : 'Chế độ Flashcard (Ẩn đáp án)'}</span>
@@ -105,7 +113,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
           {filteredQuestions.length > 0 && (
             <button
               onClick={() => onPracticeFiltered(filteredQuestions)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-xs"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl text-white bg-[#4f80b9] hover:bg-[#4372a7] transition-colors shadow-sm"
             >
               <Play className="w-3.5 h-3.5 fill-white" />
               <span>Luyện {filteredQuestions.length} câu này</span>
@@ -115,7 +123,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4">
+      <div className="rounded-3xl bg-white dark:bg-[#1c2c3d] p-4 sm:p-6 border border-[#dceeff] dark:border-[#2e4359] shadow-sm space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search Box */}
           <div className="relative">
@@ -125,7 +133,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
               placeholder="Tìm theo từ khóa, mã câu..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4f80b9] text-slate-900 dark:text-slate-100 placeholder-slate-400"
             />
           </div>
 
@@ -133,7 +141,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
           <select
             value={selectedGroup}
             onChange={e => setSelectedGroup(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
             <option value="all">Tất cả nhóm (1 - 6)</option>
             <option value="1">Group 1: Dễ - CĐR 1.1 (49 câu)</option>
@@ -148,7 +156,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
           <select
             value={selectedDifficulty}
             onChange={e => setSelectedDifficulty(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
             <option value="all">Tất cả mức độ khó</option>
             <option value="DỄ">Dễ (69 câu)</option>
@@ -160,7 +168,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
           <select
             value={selectedCdr}
             onChange={e => setSelectedCdr(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
             <option value="all">Tất cả Chuẩn đầu ra</option>
             <option value="CĐR 1.1">CĐR 1.1: Lý thuyết & Kỹ thuật</option>
@@ -169,28 +177,28 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
         </div>
 
         {/* Checkbox pills */}
-        <div className="flex items-center gap-3 pt-2 border-t border-slate-100 flex-wrap text-xs">
-          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900">
+        <div className="flex items-center gap-4 pt-2 border-t border-slate-100 dark:border-slate-800 flex-wrap text-xs">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
             <input
               type="checkbox"
               checked={showOnlyDiagrams}
               onChange={e => setShowOnlyDiagrams(e.target.checked)}
-              className="w-3.5 h-3.5 rounded-sm text-indigo-600 accent-indigo-600"
+              className="w-4 h-4 rounded accent-[#4f80b9]"
             />
-            <span className="flex items-center gap-1 font-medium">
-              <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+            <span className="flex items-center gap-1.5 font-medium">
+              <ImageIcon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               Chỉ xem câu có sơ đồ / đồ thị CFG
             </span>
           </label>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 hover:text-slate-900">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200">
             <input
               type="checkbox"
               checked={showOnlyBookmarks}
               onChange={e => setShowOnlyBookmarks(e.target.checked)}
-              className="w-3.5 h-3.5 rounded-sm text-indigo-600 accent-indigo-600"
+              className="w-4 h-4 rounded accent-[#4f80b9]"
             />
-            <span className="flex items-center gap-1 font-medium">
+            <span className="flex items-center gap-1.5 font-medium">
               <Bookmark className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               Chỉ xem câu đã đánh dấu ({bookmarkedIds.length})
             </span>
@@ -205,8 +213,8 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
       {/* Question Cards List */}
       <div className="space-y-4">
         {filteredQuestions.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 shadow-xs">
-            <p className="text-sm text-slate-500">
+          <div className="rounded-3xl bg-white dark:bg-slate-900 p-12 text-center border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Không tìm thấy câu hỏi nào phù hợp với điều kiện tìm kiếm.
             </p>
           </div>
@@ -218,32 +226,32 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
             return (
               <div
                 key={q.id}
-                className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4 transition-all hover:border-slate-300"
+                className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#1c2c3d] border border-[#dceeff] dark:border-[#2e4359] shadow-sm space-y-4 transition-all hover:border-[#4f80b9] dark:hover:border-[#7da7d9]"
               >
                 {/* Meta bar */}
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-[#e6f1fc] dark:bg-[#152230] text-[#4f80b9] dark:text-[#7da7d9] border border-[#d0e4f7] dark:border-[#2e4359]">
                       #{idx + 1}
                     </span>
-                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                    <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                       Mã: {q.code}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
                       {q.cdr}
                     </span>
                     <span
                       className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
                         q.difficulty === 'DỄ'
-                          ? 'bg-emerald-50 text-emerald-700'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
                           : q.difficulty === 'TRUNG BÌNH'
-                          ? 'bg-amber-50 text-amber-700'
-                          : 'bg-rose-50 text-rose-700'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                          : 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]'
                       }`}
                     >
                       {q.difficulty}
                     </span>
-                    <span className="text-xs text-slate-500 hidden sm:inline">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
                       • {q.groupName}
                     </span>
                   </div>
@@ -251,10 +259,10 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleToggleBookmark(q.id)}
-                      className={`p-1.5 rounded-lg transition-colors ${
+                      className={`p-1.5 rounded-xl border transition-colors ${
                         isBookmarked
-                          ? 'text-amber-600 bg-amber-50'
-                          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                          ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                       }`}
                       title="Đánh dấu câu hỏi này"
                     >
@@ -264,41 +272,41 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                 </div>
 
                 {/* Question Statement */}
-                <div className="text-sm sm:text-base font-semibold text-slate-900 leading-relaxed">
+                <div className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 leading-relaxed">
                   <FormattedQuestionText text={q.question} />
                 </div>
 
                 {/* Diagram if available */}
                 {q.diagramUrl && (
-                  <div className="my-2 p-3 bg-slate-50 rounded-xl border border-slate-200 max-w-md">
+                  <div className="my-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 max-w-md">
                     <img
                       src={q.diagramUrl}
                       alt="Sơ đồ câu hỏi"
-                      className="max-h-64 w-auto mx-auto rounded-lg object-contain bg-white border border-slate-200"
+                      className="max-h-64 w-auto mx-auto rounded-xl object-contain bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
                     />
                   </div>
                 )}
 
                 {/* Options */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
                   {q.options.map(opt => {
                     const isCorrect = opt.id === q.correctOption;
-                    let style = 'border-slate-200 bg-slate-50/50 text-slate-700';
+                    let style = 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300';
 
                     if (isRevealed && isCorrect) {
-                      style = 'border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold ring-1 ring-emerald-500';
+                      style = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 font-semibold ring-1 ring-emerald-500';
                     }
 
                     return (
                       <div
                         key={opt.id}
-                        className={`p-3 rounded-xl border flex items-start gap-2.5 ${style}`}
+                        className={`p-3 rounded-2xl border flex items-start gap-2.5 ${style}`}
                       >
                         <span
-                          className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                             isRevealed && isCorrect
                               ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-200 text-slate-700'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           {opt.label}
@@ -310,11 +318,11 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                 </div>
 
                 {/* Answer reveal bar */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
                   {hideAllAnswers && (
                     <button
                       onClick={() => handleToggleReveal(q.id)}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+                      className="text-xs text-[#4f80b9] dark:text-[#7da7d9] hover:underline font-semibold flex items-center gap-1"
                     >
                       {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       <span>{isRevealed ? 'Ẩn đáp án' : 'Bấm để xem đáp án đúng'}</span>
@@ -322,11 +330,11 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                   )}
 
                   {isRevealed && (
-                    <div className="text-slate-700">
-                      <span className="font-bold text-emerald-700">
+                    <div className="text-slate-700 dark:text-slate-300">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
                         Đáp án đúng: {String.fromCharCode(64 + q.correctOption)}.
                       </span>{' '}
-                      <span className="text-slate-500">({q.topic})</span>
+                      <span className="text-slate-400">({q.topic})</span>
                     </div>
                   )}
                 </div>

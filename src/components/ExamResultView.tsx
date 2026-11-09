@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Zap,
   Play,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ExamResult } from '../types/quiz';
@@ -54,8 +55,8 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
     if (result.score10 >= 5.0) {
       try {
         confetti({
-          particleCount: 80,
-          spread: 70,
+          particleCount: 90,
+          spread: 75,
           origin: { y: 0.6 }
         });
       } catch (e) {
@@ -99,77 +100,78 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
     result.totalQuestions > 0 ? (result.timeSpentSeconds / result.totalQuestions).toFixed(1) : '0';
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 space-y-8 animate-fadeIn">
+    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-300">
       {/* Hero Score Card */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden border border-indigo-900/40">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#152230] via-[#1c2c3d] to-[#152230] text-white p-6 sm:p-10 border border-[#2e4359] shadow-2xl">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-[#4f80b9]/15 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-20 w-80 h-80 rounded-full bg-[#fff7cc]/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-          {/* Left info */}
-          <div className="space-y-3 text-center md:text-left max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 text-indigo-300 border border-white/10 backdrop-blur-xs">
-              <Award className="w-3.5 h-3.5" />
-              Báo cáo kết quả bài kiểm tra
+        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+          {/* Left: General Assessment */}
+          <div className="space-y-4 text-center lg:text-left max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#4f80b9]/20 text-[#dceeff] border border-[#7da7d9]/30 backdrop-blur-md">
+              <Award className="w-3.5 h-3.5 text-[#fff7cc]" />
+              Báo Cáo Đánh Giá Kết Quả Bài Kiểm Tra
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
               {result.title}
             </h1>
 
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <p className="text-[#dceeff]/85 text-sm sm:text-base leading-relaxed">
               {evalInfo.feedback}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2 text-xs text-slate-300">
-              <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
-                <Clock className="w-4 h-4 text-indigo-400" />
-                Thời gian: <strong className="text-white">{formatTime(result.timeSpentSeconds)}</strong>
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2 text-xs text-slate-300">
+              <span className="flex items-center gap-1.5 bg-white/10 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                <Clock className="w-4 h-4 text-[#7da7d9]" />
+                Thời gian: <strong className="text-white font-mono">{formatTime(result.timeSpentSeconds)}</strong>
               </span>
 
-              <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
-                <Zap className="w-4 h-4 text-amber-400" />
-                Tốc độ: <strong className="text-white">{secondsPerQuestion}s/câu</strong>
+              <span className="flex items-center gap-1.5 bg-white/10 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+                <Zap className="w-4 h-4 text-[#fff7cc]" />
+                Tốc độ: <strong className="text-white font-mono">{secondsPerQuestion}s/câu</strong>
               </span>
 
-              <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+              <span className="flex items-center gap-1.5 bg-white/10 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
-                Chính xác: <strong className="text-white">{result.percentage}%</strong>
+                Độ chính xác: <strong className="text-white font-mono">{result.percentage}%</strong>
               </span>
             </div>
           </div>
 
-          {/* Right score circle */}
-          <div className="flex flex-col items-center justify-center bg-white/5 p-6 sm:p-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-inner text-center shrink-0 min-w-[220px]">
-            <span className="text-xs uppercase tracking-widest font-extrabold text-indigo-300 mb-1">
-              Điểm số của bạn
+          {/* Right: Score Gauge Dial */}
+          <div className="flex flex-col items-center justify-center bg-white/5 p-6 sm:p-8 rounded-3xl border border-white/10 backdrop-blur-md shadow-inner text-center shrink-0 min-w-[240px]">
+            <span className="text-xs uppercase tracking-widest font-extrabold text-[#dceeff] mb-1">
+              Điểm Số Đạt Được
             </span>
-            <div className="flex items-baseline justify-center gap-1 text-white">
-              <span className="text-5xl sm:text-6xl font-black tracking-tight text-white">
+            <div className="flex items-baseline justify-center gap-1 text-white my-1">
+              <span className="text-5xl sm:text-6xl font-black tracking-tight text-white font-mono">
                 {result.score10.toFixed(1)}
               </span>
               <span className="text-xl sm:text-2xl font-bold text-slate-400">/ 10</span>
             </div>
 
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-2 flex items-center gap-2">
               <span
                 className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase ${
                   result.passed
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-400/30'
+                    : 'bg-[#c25e5e]/20 text-[#f0a8a8] border border-[#c25e5e]/30'
                 }`}
               >
                 {result.passed ? 'ĐẠT CHUẨN' : 'CHƯA ĐẠT'} ({evalInfo.label})
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 mt-2 font-medium">
-              Đúng: <strong className="text-emerald-400">{result.correctCount}</strong> / Sai: <strong className="text-rose-400">{result.incorrectCount}</strong> / Bỏ qua: <strong className="text-slate-400">{result.skippedCount}</strong>
+            <p className="text-xs text-slate-400 mt-3 font-medium">
+              Đúng: <strong className="text-emerald-400">{result.correctCount}</strong> • Sai: <strong className="text-[#f0a8a8]">{result.incorrectCount}</strong> • Bỏ qua: <strong className="text-slate-400">{result.skippedCount}</strong>
             </p>
           </div>
         </div>
 
         {/* Primary Action Buttons Bar */}
-        <div className="relative z-10 pt-8 mt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+        <div className="relative z-10 pt-6 mt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2.5">
             {result.skippedCount > 0 && onContinueIncompleteExam && (
               <button
@@ -177,14 +179,14 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs sm:text-sm shadow-lg transition-all hover:scale-102 ring-2 ring-amber-400/50"
               >
                 <Play className="w-4 h-4 fill-white" />
-                <span>Tiếp Tục Hoàn Thành ({result.skippedCount} câu chưa làm)</span>
+                <span>Làm Tiếp ({result.skippedCount} câu chưa làm)</span>
               </button>
             )}
 
             {wrongQuestions.length > 0 && (
               <button
                 onClick={() => onPracticeMistakes(wrongQuestions)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-102"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#c25e5e] hover:bg-[#b04f4f] text-white font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-102"
               >
                 <AlertCircle className="w-4 h-4" />
                 <span>Luyện Tập Lại {wrongQuestions.length} Câu Sai</span>
@@ -193,7 +195,7 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
 
             <button
               onClick={onStartNewExam}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-102"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4f80b9] hover:bg-[#4372a7] text-white font-bold text-xs sm:text-sm shadow-md transition-all hover:scale-102"
             >
               <Sparkles className="w-4 h-4" />
               <span>Làm Đề Thi Mới</span>
@@ -232,33 +234,33 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
       {/* Performance Diagnostic Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Breakdown by Learning Outcome (CĐR) */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-base">
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
               Theo Chuẩn Đầu Ra (CĐR)
             </h3>
-            <span className="text-xs text-slate-500 font-medium">Học phần SQA</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Học phần SQA</span>
           </div>
 
           <div className="space-y-4">
             {Object.entries(result.breakdownByCdr).map(([cdr, stat]) => (
               <div key={cdr} className="space-y-1.5">
                 <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="font-semibold text-slate-800">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
                     {cdr} ({cdr === 'CĐR 1.1' ? 'Lý thuyết & Kỹ thuật' : 'Thực hành & Công cụ'})
                   </span>
-                  <span className="font-bold text-indigo-700">
+                  <span className="font-bold text-[#4f80b9] dark:text-[#7da7d9] font-mono">
                     {stat.correct}/{stat.total} câu ({stat.percentage}%)
                   </span>
                 </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       stat.percentage >= 70
                         ? 'bg-emerald-500'
                         : stat.percentage >= 50
                         ? 'bg-amber-500'
-                        : 'bg-rose-500'
+                        : 'bg-[#c25e5e]'
                     }`}
                     style={{ width: `${stat.percentage}%` }}
                   />
@@ -269,12 +271,12 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
         </div>
 
         {/* Breakdown by Difficulty */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-base">
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
               Theo Mức Độ Khó
             </h3>
-            <span className="text-xs text-slate-500 font-medium">Dễ / TB / Khó</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Dễ / Trung Bình / Khó</span>
           </div>
 
           <div className="space-y-4">
@@ -284,30 +286,30 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               return (
                 <div key={diff} className="space-y-1.5">
                   <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span
-                        className={`w-2 h-2 rounded-full ${
+                        className={`w-2.5 h-2.5 rounded-full ${
                           diff === 'DỄ'
                             ? 'bg-emerald-500'
                             : diff === 'TRUNG BÌNH'
                             ? 'bg-amber-500'
-                            : 'bg-rose-500'
+                            : 'bg-[#c25e5e]'
                         }`}
                       />
                       Mức độ {diff}
                     </span>
-                    <span className="font-bold text-slate-700">
+                    <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">
                       {stat.correct}/{stat.total} câu ({stat.percentage}%)
                     </span>
                   </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         stat.percentage >= 70
                           ? 'bg-emerald-500'
                           : stat.percentage >= 50
                           ? 'bg-amber-500'
-                          : 'bg-rose-500'
+                          : 'bg-[#c25e5e]'
                       }`}
                       style={{ width: `${stat.percentage}%` }}
                     />
@@ -320,38 +322,38 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
       </div>
 
       {/* Question by Question Detailed Review */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+      <div className="rounded-3xl bg-white dark:bg-slate-900 p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
               Chi Tiết Từng Câu Hỏi & Đáp Án
             </h2>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Xem lại các câu bạn đã làm đúng, sai hoặc bỏ qua kèm đáp án chuẩn từ ngân hàng
             </p>
           </div>
 
           {/* Search inside review */}
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm theo từ khóa, mã câu..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-[#152230] border border-slate-200 dark:border-[#2e4359] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4f80b9] text-slate-900 dark:text-[#f4f8fd] placeholder-slate-400"
             />
           </div>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-100 dark:border-slate-800 scrollbar-none">
           <button
             onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
               filter === 'all'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-[#4f80b9] text-white'
+                : 'bg-slate-100 dark:bg-[#233446] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#2e4359]'
             }`}
           >
             Tất cả ({result.totalQuestions})
@@ -359,10 +361,10 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
 
           <button
             onClick={() => setFilter('wrong')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               filter === 'wrong'
-                ? 'bg-rose-600 text-white'
-                : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                ? 'bg-[#c25e5e] text-white'
+                : 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34] hover:bg-[#fbd5d8]'
             }`}
           >
             <XCircle className="w-3.5 h-3.5" />
@@ -371,10 +373,10 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
 
           <button
             onClick={() => setFilter('correct')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               filter === 'correct'
                 ? 'bg-emerald-600 text-white'
-                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -384,10 +386,10 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
           {result.skippedCount > 0 && (
             <button
               onClick={() => setFilter('skipped')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 filter === 'skipped'
-                  ? 'bg-slate-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-slate-700 text-white dark:bg-slate-600'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               Chưa làm ({result.skippedCount})
@@ -396,10 +398,10 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
 
           <button
             onClick={() => setFilter('flagged')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               filter === 'flagged'
                 ? 'bg-amber-600 text-white'
-                : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60'
             }`}
           >
             <Bookmark className="w-3.5 h-3.5" />
@@ -421,197 +423,123 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               return (
                 <div
                   key={q.id}
-                  className={`p-5 rounded-2xl border transition-all ${
+                  className={`p-5 rounded-3xl border transition-all ${
                     item.isCorrect
-                      ? 'border-emerald-200 bg-white'
+                      ? 'border-emerald-200 dark:border-emerald-900/60 bg-white dark:bg-slate-900/80'
                       : item.isSkipped
-                      ? 'border-slate-200 bg-slate-50/50'
-                      : 'border-rose-200 bg-white'
+                      ? 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40'
+                      : 'border-[#f5c6cb] dark:border-[#522b34] bg-white dark:bg-[#1c2c3d]'
                   }`}
                 >
                   {/* Question Tag Bar */}
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-md ${
+                        className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg ${
                           item.isCorrect
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                             : item.isSkipped
-                            ? 'bg-slate-200 text-slate-700'
-                            : 'bg-rose-100 text-rose-800'
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            : 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]'
                         }`}
                       >
                         {item.isCorrect ? (
                           <>
                             <Check className="w-3.5 h-3.5" />
-                            Đúng
+                            Đúng (+{(10 / result.totalQuestions).toFixed(2)}đ)
                           </>
                         ) : item.isSkipped ? (
-                          <>Chưa làm</>
+                          <>Chưa làm (0đ)</>
                         ) : (
                           <>
                             <XCircle className="w-3.5 h-3.5" />
-                            Sai
+                            Sai (0đ)
                           </>
                         )}
                       </span>
 
-                      <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                      <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                         #{q.code}
                       </span>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
-                        {q.cdr}
-                      </span>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                        {q.difficulty}
-                      </span>
-                      <span className="text-xs text-slate-500 hidden sm:inline">
-                        • {q.groupName}
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                        {q.groupName} • {q.cdr}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {q.topic}
+                      </span>
                       <button
                         onClick={() => handleToggleBookmark(q.id)}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`p-1.5 rounded-lg border transition-colors ${
                           isBookmarked
-                            ? 'text-amber-600 bg-amber-50'
-                            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                            ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 text-amber-600'
+                            : 'border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                         }`}
-                        title="Đánh dấu câu hỏi này"
+                        title="Đánh dấu câu này"
                       >
-                        <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-amber-500' : ''}`} />
+                        <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Question Text */}
-                  <div className="text-sm sm:text-base font-semibold text-slate-900 mb-4 leading-relaxed">
+                  {/* Question Content */}
+                  <div className="text-sm sm:text-base font-medium text-slate-900 dark:text-slate-100 mb-4 leading-relaxed">
                     <FormattedQuestionText text={q.question} />
                   </div>
 
-                  {/* Diagram if present */}
-                  {q.diagramUrl && (
-                    <div className="my-3 p-3 bg-slate-50 rounded-xl border border-slate-200 max-w-md">
-                      <img
-                        src={q.diagramUrl}
-                        alt="Sơ đồ câu hỏi"
-                        className="max-h-60 w-auto mx-auto rounded-lg object-contain bg-white border border-slate-200"
-                      />
-                    </div>
-                  )}
+                  {/* Options List */}
+                  <div className="space-y-2 mb-3">
+                    {q.options.map(option => {
+                      const isUserChoice = item.userAnswer === option.id;
+                      const isCorrectAnswer = q.correctOption === option.id;
 
-                  {/* 4 Options Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
-                    {q.options.map(opt => {
-                      const isCorrect = opt.id === q.correctOption;
-                      const isUserChoice = item.userAnswer === opt.id;
+                      let rowStyle = 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300';
 
-                      let style = 'border-slate-200 bg-slate-50/50 text-slate-700';
-
-                      if (isCorrect) {
-                        style = 'border-emerald-500 bg-emerald-50 text-emerald-950 font-semibold ring-1 ring-emerald-500';
-                      } else if (isUserChoice && !isCorrect) {
-                        style = 'border-rose-400 bg-rose-50 text-rose-950 line-through ring-1 ring-rose-400';
+                      if (isCorrectAnswer) {
+                        rowStyle = 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 font-medium';
+                      } else if (isUserChoice && !isCorrectAnswer) {
+                        rowStyle = 'border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/80 dark:bg-[#351e24]/60 text-[#8e3535] dark:text-[#f0a8a8] line-through';
                       }
 
                       return (
                         <div
-                          key={opt.id}
-                          className={`p-3 rounded-xl border flex items-start gap-2.5 ${style}`}
+                          key={option.id}
+                          className={`p-3 rounded-xl border flex items-start gap-3 text-xs sm:text-sm ${rowStyle}`}
                         >
                           <span
-                            className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
-                              isCorrect
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                              isCorrectAnswer
                                 ? 'bg-emerald-600 text-white'
                                 : isUserChoice
-                                ? 'bg-rose-600 text-white'
-                                : 'bg-slate-200 text-slate-700'
+                                ? 'bg-[#c25e5e] text-white'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                             }`}
                           >
-                            {opt.label}
+                            {option.label}
                           </span>
-                          <span className="pt-0.5 leading-snug">{opt.text}</span>
+                          <span className="flex-1 pt-0.5">{option.text}</span>
+                          {isCorrectAnswer && (
+                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Đáp án chuẩn
+                            </span>
+                          )}
+                          {isUserChoice && !isCorrectAnswer && (
+                            <span className="text-[11px] font-bold text-[#b04848] dark:text-[#f0a8a8] flex items-center gap-1 shrink-0">
+                              <XCircle className="w-3.5 h-3.5" />
+                              Lựa chọn của bạn
+                            </span>
+                          )}
                         </div>
                       );
                     })}
-                  </div>
-
-                  {/* Explanation / Notes */}
-                  <div className="mt-3 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <span className="font-bold text-slate-800">Đáp án chính xác: </span>
-                    <strong className="text-emerald-700 font-bold">
-                      {String.fromCharCode(64 + q.correctOption)}. {q.options.find(o => o.id === q.correctOption)?.text}
-                    </strong>
-                    {item.userAnswer !== null && !item.isCorrect && (
-                      <span className="block text-rose-600 mt-0.5">
-                        (Bạn đã chọn: {String.fromCharCode(64 + item.userAnswer)})
-                      </span>
-                    )}
-                    <span className="block text-slate-500 mt-1">
-                      Chuyên đề: <em>{q.topic}</em> • Chuẩn đầu ra: <em>{q.cdr}</em>.
-                    </span>
                   </div>
                 </div>
               );
             })
           )}
-        </div>
-      </div>
-
-      {/* Bottom Next-Step Action Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-900/40 text-center space-y-5">
-        <h3 className="text-xl sm:text-2xl font-bold">
-          Bạn Đã Xem Xong Kết Quả! Tiếp Theo Bạn Muốn Làm Gì?
-        </h3>
-        <p className="text-slate-300 text-xs sm:text-sm max-w-xl mx-auto">
-          Bạn có thể làm ngay một đề thi 50 câu mới, tiếp tục giải nốt các câu chưa làm, hoặc ôn luyện riêng các câu đã làm sai để ghi nhớ kiến thức.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          {result.skippedCount > 0 && onContinueIncompleteExam && (
-            <button
-              onClick={onContinueIncompleteExam}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-sm shadow-lg transition-all hover:scale-102"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>Tiếp Tục Hoàn Thành ({result.skippedCount} câu chưa làm)</span>
-            </button>
-          )}
-
-          {wrongQuestions.length > 0 && (
-            <button
-              onClick={() => onPracticeMistakes(wrongQuestions)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md transition-all hover:scale-102"
-            >
-              <AlertCircle className="w-4 h-4" />
-              <span>Luyện Tập Lại {wrongQuestions.length} Câu Sai</span>
-            </button>
-          )}
-
-          <button
-            onClick={onStartNewExam}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition-all hover:scale-102"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Làm Đề Thi Mới (50 câu khác)</span>
-          </button>
-
-          <button
-            onClick={onRetakeSameExam}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm border border-white/20 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Làm Lại Đề Này Từ Đầu</span>
-          </button>
-
-          <button
-            onClick={onGoHome}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white font-semibold text-sm border border-white/10 transition-colors"
-          >
-            <Home className="w-4 h-4" />
-            <span>Về Trang Chủ</span>
-          </button>
         </div>
       </div>
     </div>

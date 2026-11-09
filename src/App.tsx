@@ -23,22 +23,47 @@ import {
   getMistakeRecords,
   getBookmarks
 } from './utils/storage';
+import {
+  ThemeMode,
+  getThemePreference,
+  setThemePreference,
+  applyTheme,
+  setupThemeListener
+} from './utils/theme';
 
 const allQuestions = questionsData as Question[];
 
 export default function App() {
+  const [theme, setTheme] = useState<ThemeMode>(getThemePreference);
   const [activeTab, setActiveTab] = useState<TabType>('exam');
   const [activeSession, setActiveSession] = useState<ActiveExamSession | null>(null);
+  const [isExamActive, setIsExamActive] = useState<boolean>(false);
   const [currentResult, setCurrentResult] = useState<ExamResult | null>(null);
   const [history, setHistory] = useState<ExamResult[]>([]);
   const [mistakes, setMistakes] = useState(getMistakeRecords());
   const [bookmarks, setBookmarks] = useState<string[]>(getBookmarks());
+  const [filterBookmarksOnly, setFilterBookmarksOnly] = useState<boolean>(false);
+
+  // Initialize theme
+  useEffect(() => {
+    applyTheme(theme);
+    const cleanup = setupThemeListener(() => {
+      // System theme change handled
+    });
+    return cleanup;
+  }, [theme]);
+
+  const handleThemeChange = (newTheme: ThemeMode) => {
+    setTheme(newTheme);
+    setThemePreference(newTheme);
+  };
 
   // Load storage state on mount
   useEffect(() => {
     const savedSession = getActiveSession();
     if (savedSession) {
       setActiveSession(savedSession);
+      // Keep isExamActive false on initial reload so user sees the Home/Resume banner first
     }
     setHistory(getExamHistory());
     setMistakes(getMistakeRecords());
@@ -86,6 +111,7 @@ export default function App() {
 
     saveActiveSession(session);
     setActiveSession(session);
+    setIsExamActive(true);
     setCurrentResult(null);
   };
 
@@ -121,11 +147,12 @@ export default function App() {
 
     saveActiveSession(newSession);
     setActiveSession(newSession);
+    setIsExamActive(true);
     setCurrentResult(null);
     setActiveTab('exam');
   };
 
-  // Start targeted practice with specific questions (e.g. from mistakes or filtered bank)
+  // Start targeted practice with specific questions
   const handleStartPracticeWithQuestions = (
     questionsToPractice: Question[],
     title = 'Ôn Luyện Tập Trung'
@@ -159,6 +186,7 @@ export default function App() {
 
     saveActiveSession(newSession);
     setActiveSession(newSession);
+    setIsExamActive(true);
     setCurrentResult(null);
     setActiveTab('exam');
   };
@@ -195,6 +223,7 @@ export default function App() {
 
     saveActiveSession(newSession);
     setActiveSession(newSession);
+    setIsExamActive(true);
     setCurrentResult(null);
     setActiveTab('exam');
   };
@@ -231,6 +260,7 @@ export default function App() {
 
     saveActiveSession(newSession);
     setActiveSession(newSession);
+    setIsExamActive(true);
     setCurrentResult(null);
     setActiveTab('exam');
   };
@@ -275,6 +305,7 @@ export default function App() {
 
     saveActiveSession(resumedSession);
     setActiveSession(resumedSession);
+    setIsExamActive(true);
     setCurrentResult(null);
     setActiveTab('exam');
   };
@@ -293,8 +324,15 @@ export default function App() {
     clearActiveSession();
 
     setActiveSession(null);
+    setIsExamActive(false);
     setCurrentResult(result);
     refreshStorageData();
+  };
+
+  // Exit exam view back to Home (pauses exam with ResumeBanner)
+  const handleExitExam = () => {
+    setIsExamActive(false);
+    setActiveTab('exam');
   };
 
   // Discard in-progress session
@@ -302,6 +340,7 @@ export default function App() {
     if (window.confirm('Bạn có chắc muốn hủy bỏ bài thi đang làm dở này?')) {
       clearActiveSession();
       setActiveSession(null);
+      setIsExamActive(false);
     }
   };
 
@@ -319,27 +358,39 @@ export default function App() {
   const mistakesCount = Object.values(mistakes).filter(m => !m.resolved).length;
   const bookmarksCount = bookmarks.length;
   const historyCount = history.length;
+  const isCurrentlyInExam = activeSession && isExamActive;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-indigo-500 selection:text-white">
-      {/* Top Navbar */}
-      <Navbar
-        activeTab={activeTab}
-        onSelectTab={tab => {
-          setCurrentResult(null);
-          setActiveTab(tab);
-        }}
-        mistakesCount={mistakesCount}
-        bookmarksCount={bookmarksCount}
-        historyCount={historyCount}
-      />
+    <div className="min-h-screen bg-[#f4f8fd] dark:bg-[#152230] flex flex-col font-sans text-[#152230] dark:text-[#f4f8fd] transition-colors selection:bg-[#4f80b9] selection:text-white">
+      {/* Top Navbar (hidden during active exam to give max focus) */}
+      {!isCurrentlyInExam && (
+        <Navbar
+          activeTab={activeTab}
+          onSelectTab={tab => {
+            setCurrentResult(null);
+            setFilterBookmarksOnly(false);
+            setActiveTab(tab);
+          }}
+          mistakesCount={mistakesCount}
+          bookmarksCount={bookmarksCount}
+          historyCount={historyCount}
+          theme={theme}
+          onThemeChange={handleThemeChange}
+          onOpenBookmarks={() => {
+            setCurrentResult(null);
+            setFilterBookmarksOnly(true);
+            setActiveTab('bank');
+          }}
+        />
+      )}
 
-      {/* In-Progress Exam Banner (shown when user is browsing other tabs while having an ongoing test) */}
-      {activeSession && !activeSession.isCompleted && activeTab !== 'exam' && (
+      {/* In-Progress Exam Banner (shown whenever there is an unfinished exam and user is NOT actively in the exam arena) */}
+      {activeSession && !activeSession.isCompleted && !isCurrentlyInExam && (
         <ResumeBanner
           session={activeSession}
           onResume={() => {
             setCurrentResult(null);
+            setIsExamActive(true);
             setActiveTab('exam');
           }}
           onDiscard={handleDiscardSession}
@@ -347,14 +398,14 @@ export default function App() {
       )}
 
       {/* Main View Router */}
-      <main className="flex-1 pb-16">
-        {activeSession && activeTab === 'exam' ? (
-          /* Active Exam View */
+      <main className="flex-1">
+        {isCurrentlyInExam ? (
+          /* Active Exam Arena */
           <ActiveExamView
-            session={activeSession}
+            session={activeSession!}
             onUpdateSession={handleUpdateSession}
             onSubmitExam={handleSubmitExam}
-            onExitExam={() => setActiveTab('bank')}
+            onExitExam={handleExitExam}
           />
         ) : currentResult ? (
           /* Exam Result View */
@@ -372,12 +423,11 @@ export default function App() {
             }
             onGoHome={handleGoHome}
           />
-        ) : activeTab === 'exam' || activeTab === 'practice' ? (
-          /* Setup Exam / Practice View */
+        ) : activeTab === 'exam' ? (
+          /* Smart Dashboard / Setup Exam View */
           <ExamSetupView
             questions={allQuestions}
             onStartExam={handleStartExam}
-            defaultMode={activeTab === 'practice' ? 'practice' : 'standard'}
           />
         ) : activeTab === 'mistakes' ? (
           /* Mistake Bank View */
@@ -399,28 +449,31 @@ export default function App() {
             onViewResult={handleViewPastResult}
             onStartExam={() => setActiveTab('exam')}
           />
-        ) : activeTab === 'bank' || activeTab === 'bookmarks' ? (
+        ) : activeTab === 'bank' ? (
           /* Question Bank / Bookmarks Browser */
           <QuestionBankBrowser
             questions={allQuestions}
             onPracticeFiltered={qs =>
               handleStartPracticeWithQuestions(qs, 'Luyện tập bộ câu hỏi lọc')
             }
+            filterBookmarksOnly={filterBookmarksOnly}
           />
         ) : null}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 px-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>
-            Hệ thống Luyện thi Trắc nghiệm SQA • Đánh giá & Kiểm định chất lượng phần mềm
-          </p>
-          <p className="text-slate-400">
-            Tổng cộng <strong>{allQuestions.length} câu hỏi</strong> chuẩn • Tự động chấm điểm & Lưu lịch sử
-          </p>
-        </div>
-      </footer>
+      {/* Footer (hidden during active exam) */}
+      {!isCurrentlyInExam && (
+        <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#090d16] py-6 px-4 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>
+              Hệ thống Luyện thi Trắc nghiệm SQA Pro Max • Đánh giá & Kiểm định chất lượng phần mềm
+            </p>
+            <p className="text-slate-400 dark:text-slate-500">
+              Tổng cộng <strong>{allQuestions.length} câu hỏi</strong> chuẩn • Tự động chấm điểm & Lưu lịch sử
+            </p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
