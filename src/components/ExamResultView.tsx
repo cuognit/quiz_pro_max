@@ -18,7 +18,9 @@ import {
   Zap,
   Play,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft,
+  History
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ExamResult } from '../types/quiz';
@@ -33,6 +35,7 @@ interface ExamResultViewProps {
   onContinueIncompleteExam?: () => void;
   onPracticeMistakes: (wrongQuestions: any[]) => void;
   onGoHome: () => void;
+  onBackToHistory?: () => void;
 }
 
 export const ExamResultView: React.FC<ExamResultViewProps> = ({
@@ -41,7 +44,8 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   onStartNewExam,
   onContinueIncompleteExam,
   onPracticeMistakes,
-  onGoHome
+  onGoHome,
+  onBackToHistory
 }) => {
   const [filter, setFilter] = useState<'all' | 'wrong' | 'correct' | 'skipped' | 'flagged'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -100,7 +104,18 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
     result.totalQuestions > 0 ? (result.timeSpentSeconds / result.totalQuestions).toFixed(1) : '0';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6 animate-in fade-in duration-300">
+      {/* Top Back Navigation Bar */}
+      <div className="flex items-center justify-between pb-1">
+        <button
+          onClick={onBackToHistory || onGoHome}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-[#152230] dark:text-[#f4f8fd] bg-white dark:bg-[#1c2c3d] hover:bg-[#e6f1fc] dark:hover:bg-[#233446] border border-[#dceeff] dark:border-[#2e4359] transition-all shadow-xs group"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#4f80b9] dark:text-[#7da7d9] group-hover:-translate-x-1 transition-transform" />
+          <span>{onBackToHistory ? 'Quay Lại Lịch Sử Làm Bài' : 'Quay Lại'}</span>
+        </button>
+      </div>
+
       {/* Hero Score Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#152230] via-[#1c2c3d] to-[#152230] text-white p-6 sm:p-10 border border-[#2e4359] shadow-2xl">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-[#4f80b9]/15 blur-3xl pointer-events-none" />
@@ -219,6 +234,17 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               <Share2 className="w-3.5 h-3.5" />
               <span>{showShareToast ? 'Đã sao chép!' : 'Chia sẻ điểm'}</span>
             </button>
+
+            {onBackToHistory && (
+              <button
+                onClick={onBackToHistory}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-colors"
+                title="Quay lại danh sách lịch sử bài thi"
+              >
+                <History className="w-3.5 h-3.5" />
+                <span>Quay Lại Lịch Sử</span>
+              </button>
+            )}
 
             <button
               onClick={onGoHome}

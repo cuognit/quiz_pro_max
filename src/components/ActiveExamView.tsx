@@ -726,122 +726,162 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
       )}
 
       {/* Modal: Exit Confirmation */}
-      {showExitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-800">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
-              <LogOut className="w-6 h-6" />
-            </div>
+      <AnimatePresence>
+        {showExitModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-800"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+                <LogOut className="w-6 h-6" />
+              </div>
 
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
-              Tạm Dừng Hoặc Thoát Bài Thi?
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-5">
-              Hệ thống sẽ <strong>tự động lưu tiến trình</strong> của bạn. Bạn có thể quay lại làm tiếp bất kỳ lúc nào từ thanh thông báo bài dở dang trên trang chủ.
-            </p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
+                Tạm Dừng Hoặc Thoát Bài Thi?
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-5">
+                Hệ thống sẽ <strong>tự động lưu tiến trình</strong> của bạn. Bạn có thể quay lại làm tiếp bất kỳ lúc nào từ thanh thông báo bài dở dang trên trang chủ.
+              </p>
 
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowExitModal(false)}
-                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Tiếp tục thi
-              </button>
-              <button
-                onClick={() => {
-                  setShowExitModal(false);
-                  onExitExam();
-                }}
-                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#4f80b9] hover:bg-[#4372a7] transition-colors shadow-xs"
-              >
-                Lưu & Thoát Ra Ngoài
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setShowExitModal(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Tiếp tục thi
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExitModal(false);
+                    onExitExam();
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-[#4f80b9] hover:bg-[#4372a7] transition-colors shadow-xs"
+                >
+                  Lưu & Thoát Ra Ngoài
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal: Submit Confirmation */}
-      {showSubmitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#1c2c3d] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#dceeff] dark:border-[#2e4359]">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
+      <AnimatePresence>
+        {showSubmitModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              className="bg-white dark:bg-[#1c2c3d] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#dceeff] dark:border-[#2e4359]"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
 
-            <h3 className="text-lg font-bold text-[#152230] dark:text-[#f4f8fd] mb-2">
-              Xác Nhận Nộp Bài & Chấm Điểm?
-            </h3>
+              <h3 className="text-lg font-bold text-[#152230] dark:text-[#f4f8fd] mb-2">
+                Xác Nhận Nộp Bài & Chấm Điểm?
+              </h3>
 
-            <div className="bg-slate-50 dark:bg-[#152230]/60 rounded-2xl p-4 border border-slate-200/80 dark:border-[#2e4359] mb-4 space-y-2 text-xs sm:text-sm">
-              <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                <span>Tổng số câu:</span>
-                <strong className="text-[#152230] dark:text-[#f4f8fd]">{totalQuestions} câu</strong>
-              </div>
-              <div className="flex justify-between text-[#4f80b9] dark:text-[#7da7d9]">
-                <span>Số câu đã hoàn thành:</span>
-                <strong className="font-bold">{answeredCount} câu ({progressPercent}%)</strong>
-              </div>
-              <div className="flex justify-between text-[#b04848] dark:text-[#f0a8a8]">
-                <span>Số câu chưa trả lời:</span>
-                <strong className="font-bold">{unansweredCount} câu</strong>
-              </div>
-              {session.totalDurationSeconds > 0 && (
-                <div className="flex justify-between text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
-                  <span>Thời gian còn lại:</span>
-                  <strong className="text-amber-600 dark:text-amber-400 font-mono">{formatTime(remainingSeconds)}</strong>
+              <div className="bg-slate-50 dark:bg-[#152230]/60 rounded-2xl p-4 border border-slate-200/80 dark:border-[#2e4359] mb-4 space-y-2 text-xs sm:text-sm">
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                  <span>Tổng số câu:</span>
+                  <strong className="text-[#152230] dark:text-[#f4f8fd]">{totalQuestions} câu</strong>
                 </div>
+                <div className="flex justify-between text-[#4f80b9] dark:text-[#7da7d9]">
+                  <span>Số câu đã hoàn thành:</span>
+                  <strong className="font-bold">{answeredCount} câu ({progressPercent}%)</strong>
+                </div>
+                <div className="flex justify-between text-[#b04848] dark:text-[#f0a8a8]">
+                  <span>Số câu chưa trả lời:</span>
+                  <strong className="font-bold">{unansweredCount} câu</strong>
+                </div>
+                {session.totalDurationSeconds > 0 && (
+                  <div className="flex justify-between text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <span>Thời gian còn lại:</span>
+                    <strong className="text-amber-600 dark:text-amber-400 font-mono">{formatTime(remainingSeconds)}</strong>
+                  </div>
+                )}
+              </div>
+
+              {unansweredCount > 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-200/80 dark:border-amber-800/60 mb-4 leading-relaxed">
+                  Lưu ý: Bạn vẫn còn <strong>{unansweredCount} câu hỏi</strong> chưa điền đáp án. Các câu này sẽ được tính là 0 điểm.
+                </p>
               )}
-            </div>
 
-            {unansweredCount > 0 && (
-              <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-200/80 dark:border-amber-800/60 mb-4 leading-relaxed">
-                Lưu ý: Bạn vẫn còn <strong>{unansweredCount} câu hỏi</strong> chưa điền đáp án. Các câu này sẽ được tính là 0 điểm.
-              </p>
-            )}
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Làm tiếp
-              </button>
-              <button
-                onClick={() => {
-                  setShowSubmitModal(false);
-                  onSubmitExam();
-                }}
-                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-xs"
-              >
-                Xác Nhận Nộp Bài
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={() => setShowSubmitModal(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Làm tiếp
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSubmitModal(false);
+                    onSubmitExam();
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-xs"
+                >
+                  Xác Nhận Nộp Bài
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal: Zoomed Diagram Image */}
-      {zoomedImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 cursor-pointer"
-          onClick={() => setZoomedImage(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-auto">
-            <button
-              onClick={() => setZoomedImage(null)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 cursor-pointer"
+            onClick={() => setZoomedImage(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              className="relative max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-3xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-auto"
             >
-              <X className="w-5 h-5" />
-            </button>
-            <img
-              src={zoomedImage}
-              alt="Sơ đồ chi tiết"
-              className="max-h-[80vh] w-auto mx-auto object-contain rounded-xl"
-            />
-          </div>
-        </div>
-      )}
+              <button
+                onClick={() => setZoomedImage(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <img
+                src={zoomedImage}
+                alt="Sơ đồ chi tiết"
+                className="max-h-[80vh] w-auto mx-auto object-contain rounded-xl"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

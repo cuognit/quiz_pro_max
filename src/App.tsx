@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
 import { Navbar, TabType } from './components/Navbar';
 import { ResumeBanner } from './components/ResumeBanner';
 import { ExamSetupView } from './components/ExamSetupView';
@@ -33,9 +34,65 @@ import {
 
 const allQuestions = questionsData as Question[];
 
+const TAB_ORDER: Record<TabType, number> = {
+  exam: 0,
+  mistakes: 1,
+  history: 2,
+  bank: 3
+};
+
+const tabVariants: Variants = {
+  enter: (dir: number) => ({
+    x: dir > 0 ? 32 : dir < 0 ? -32 : 0,
+    opacity: 0
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      x: { type: 'spring', stiffness: 420, damping: 32 },
+      opacity: { duration: 0.22, ease: 'easeOut' }
+    }
+  },
+  exit: (dir: number) => ({
+    x: dir > 0 ? -32 : dir < 0 ? 32 : 0,
+    opacity: 0,
+    transition: {
+      x: { duration: 0.18, ease: 'easeIn' },
+      opacity: { duration: 0.16, ease: 'easeIn' }
+    }
+  })
+};
+
+const pageSlideUpVariants: Variants = {
+  initial: {
+    y: 20,
+    opacity: 0
+  },
+  animate: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 380,
+      damping: 30,
+      opacity: { duration: 0.22, ease: 'easeOut' }
+    }
+  },
+  exit: {
+    y: -15,
+    opacity: 0,
+    transition: {
+      duration: 0.16,
+      ease: 'easeIn'
+    }
+  }
+};
+
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(getThemePreference);
   const [activeTab, setActiveTab] = useState<TabType>('exam');
+  const [direction, setDirection] = useState<number>(0);
   const [activeSession, setActiveSession] = useState<ActiveExamSession | null>(null);
   const [isExamActive, setIsExamActive] = useState<boolean>(false);
   const [currentResult, setCurrentResult] = useState<ExamResult | null>(null);
@@ -352,7 +409,26 @@ export default function App() {
   // Exit result view
   const handleGoHome = () => {
     setCurrentResult(null);
+    setDirection(-1);
     setActiveTab('exam');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const handleBackToHistory = () => {
+    setCurrentResult(null);
+    setDirection(-1);
+    setActiveTab('history');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const handleSelectTab = (newTab: TabType) => {
+    const currentIdx = TAB_ORDER[activeTab] ?? 0;
+    const newIdx = TAB_ORDER[newTab] ?? 0;
+    setDirection(newIdx >= currentIdx ? 1 : -1);
+    setCurrentResult(null);
+    setFilterBookmarksOnly(false);
+    setActiveTab(newTab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const mistakesCount = Object.values(mistakes).filter(m => !m.resolved).length;
@@ -366,20 +442,18 @@ export default function App() {
       {!isCurrentlyInExam && (
         <Navbar
           activeTab={activeTab}
-          onSelectTab={tab => {
-            setCurrentResult(null);
-            setFilterBookmarksOnly(false);
-            setActiveTab(tab);
-          }}
+          onSelectTab={handleSelectTab}
           mistakesCount={mistakesCount}
           bookmarksCount={bookmarksCount}
           historyCount={historyCount}
           theme={theme}
           onThemeChange={handleThemeChange}
           onOpenBookmarks={() => {
+            setDirection(1);
             setCurrentResult(null);
             setFilterBookmarksOnly(true);
             setActiveTab('bank');
+            window.scrollTo({ top: 0, behavior: 'instant' });
           }}
         />
       )}
@@ -398,67 +472,107 @@ export default function App() {
       )}
 
       {/* Main View Router */}
-      <main className="flex-1">
-        {isCurrentlyInExam ? (
-          /* Active Exam Arena */
-          <ActiveExamView
-            session={activeSession!}
-            onUpdateSession={handleUpdateSession}
-            onSubmitExam={handleSubmitExam}
-            onExitExam={handleExitExam}
-          />
-        ) : currentResult ? (
-          /* Exam Result View */
-          <ExamResultView
-            result={currentResult}
-            onRetakeSameExam={() => handleRetakeSameQuestions(currentResult)}
-            onStartNewExam={handleStartNewExam}
-            onContinueIncompleteExam={
-              currentResult.skippedCount > 0
-                ? () => handleContinueIncompleteExam(currentResult)
-                : undefined
-            }
-            onPracticeMistakes={wrongQuestions =>
-              handleStartPracticeWithQuestions(wrongQuestions, 'Luyện tập các câu sai')
-            }
-            onGoHome={handleGoHome}
-          />
-        ) : activeTab === 'exam' ? (
-          /* Smart Dashboard / Setup Exam View */
-          <ExamSetupView
-            questions={allQuestions}
-            onStartExam={handleStartExam}
-          />
-        ) : activeTab === 'mistakes' ? (
-          /* Mistake Bank View */
-          <MistakesView
-            questions={allQuestions}
-            mistakes={mistakes}
-            onRefreshMistakes={refreshStorageData}
-            onPracticeMistakes={qs =>
-              handleStartPracticeWithQuestions(qs, 'Khắc phục câu hỏi làm sai')
-            }
-            onGoToBank={() => setActiveTab('bank')}
-          />
-        ) : activeTab === 'history' ? (
-          /* Exam History View */
-          <HistoryView
-            history={history}
-            questions={allQuestions}
-            onRefreshHistory={refreshStorageData}
-            onViewResult={handleViewPastResult}
-            onStartExam={() => setActiveTab('exam')}
-          />
-        ) : activeTab === 'bank' ? (
-          /* Question Bank / Bookmarks Browser */
-          <QuestionBankBrowser
-            questions={allQuestions}
-            onPracticeFiltered={qs =>
-              handleStartPracticeWithQuestions(qs, 'Luyện tập bộ câu hỏi lọc')
-            }
-            filterBookmarksOnly={filterBookmarksOnly}
-          />
-        ) : null}
+      <main className="flex-1 overflow-x-clip relative">
+        <AnimatePresence mode="wait">
+          {isCurrentlyInExam ? (
+            /* Active Exam Arena */
+            <motion.div
+              key="active-exam-view"
+              variants={pageSlideUpVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="w-full"
+            >
+              <ActiveExamView
+                session={activeSession!}
+                onUpdateSession={handleUpdateSession}
+                onSubmitExam={handleSubmitExam}
+                onExitExam={handleExitExam}
+              />
+            </motion.div>
+          ) : currentResult ? (
+            /* Exam Result View */
+            <motion.div
+              key={`exam-result-${currentResult.id}`}
+              variants={pageSlideUpVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="w-full"
+            >
+              <ExamResultView
+                result={currentResult}
+                onRetakeSameExam={() => handleRetakeSameQuestions(currentResult)}
+                onStartNewExam={handleStartNewExam}
+                onContinueIncompleteExam={
+                  currentResult.skippedCount > 0
+                    ? () => handleContinueIncompleteExam(currentResult)
+                    : undefined
+                }
+                onPracticeMistakes={wrongQuestions =>
+                  handleStartPracticeWithQuestions(wrongQuestions, 'Luyện tập các câu sai')
+                }
+                onGoHome={handleGoHome}
+                onBackToHistory={handleBackToHistory}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key={activeTab}
+              custom={direction}
+              variants={tabVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="w-full"
+            >
+              {activeTab === 'exam' && (
+                <ExamSetupView
+                  questions={allQuestions}
+                  onStartExam={handleStartExam}
+                />
+              )}
+              {activeTab === 'mistakes' && (
+                <MistakesView
+                  questions={allQuestions}
+                  mistakes={mistakes}
+                  onRefreshMistakes={refreshStorageData}
+                  onPracticeMistakes={qs =>
+                    handleStartPracticeWithQuestions(qs, 'Khắc phục câu hỏi làm sai')
+                  }
+                  onGoToBank={() => {
+                    setDirection(1);
+                    setActiveTab('bank');
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  }}
+                />
+              )}
+              {activeTab === 'history' && (
+                <HistoryView
+                  history={history}
+                  questions={allQuestions}
+                  onRefreshHistory={refreshStorageData}
+                  onViewResult={handleViewPastResult}
+                  onStartExam={() => {
+                    setDirection(-1);
+                    setActiveTab('exam');
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                  }}
+                />
+              )}
+              {activeTab === 'bank' && (
+                <QuestionBankBrowser
+                  questions={allQuestions}
+                  onPracticeFiltered={qs =>
+                    handleStartPracticeWithQuestions(qs, 'Luyện tập bộ câu hỏi lọc')
+                  }
+                  filterBookmarksOnly={filterBookmarksOnly}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer (hidden during active exam) */}

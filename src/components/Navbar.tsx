@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import {
   FileText,
   AlertCircle,
@@ -111,23 +112,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => onSelectTab(item.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors duration-150 ${
                     isActive
-                      ? 'bg-[#4f80b9] text-white shadow-xs font-semibold'
+                      ? 'text-white font-semibold'
                       : 'text-[#233446] dark:text-[#dceeff] hover:text-[#152230] dark:hover:text-white hover:bg-[#dceeff]/50 dark:hover:bg-[#1c2c3d]'
                   }`}
                 >
-                  {item.icon}
-                  <span>{item.label}</span>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-none ${
-                        isActive ? 'bg-white/25 text-white' : item.badgeColor
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeDesktopNavPill"
+                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                      className="absolute inset-0 bg-[#4f80b9] rounded-xl shadow-xs"
+                    />
                   )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {item.icon}
+                    <span>{item.label}</span>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold leading-none ${
+                          isActive ? 'bg-white/25 text-white' : item.badgeColor
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </span>
                 </button>
               );
             })}
@@ -187,23 +197,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onSelectTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
+                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-colors ${
                   isActive
-                    ? 'bg-[#4f80b9] text-white shadow-xs font-bold'
+                    ? 'text-white font-bold'
                     : 'text-[#233446] dark:text-[#dceeff] hover:bg-[#dceeff]/50 dark:hover:bg-[#1c2c3d]'
                 }`}
               >
-                {item.icon}
-                <span>{item.label}</span>
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span
-                    className={`text-[9px] px-1 py-0.2 rounded-full font-bold ${
-                      isActive ? 'bg-white/20 text-white' : item.badgeColor
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
+                {isActive && (
+                  <motion.div
+                    layoutId="activeMobileNavPill"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                    className="absolute inset-0 bg-[#4f80b9] rounded-lg shadow-xs"
+                  />
                 )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  {item.icon}
+                  <span>{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span
+                      className={`text-[9px] px-1 py-0.2 rounded-full font-bold ${
+                        isActive ? 'bg-white/20 text-white' : item.badgeColor
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}

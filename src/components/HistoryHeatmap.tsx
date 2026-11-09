@@ -10,7 +10,8 @@ import {
   Layers,
   Award,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { ExamResult } from '../types/quiz';
 
@@ -146,7 +147,7 @@ export const HistoryHeatmap: React.FC<HistoryHeatmapProps> = ({
   onSelectExam
 }) => {
   const [dimension, setDimension] = useState<ViewDimension>('group');
-  const [hoveredCell, setHoveredCell] = useState<CellData | null>(null);
+  const [selectedCell, setSelectedCell] = useState<CellData | null>(null);
 
   const chronologicalHistory = useMemo(() => {
     return [...history].sort((a, b) => a.completedAt - b.completedAt);
@@ -382,22 +383,29 @@ export const HistoryHeatmap: React.FC<HistoryHeatmapProps> = ({
                       const hasData = cell.percentage !== null;
                       const bgColor = hasData ? colorScale(cell.percentage!) : undefined;
                       const textColor = textColorScale(cell.percentage);
-                      const isHovered =
-                        hoveredCell?.examId === cell.examId &&
-                        hoveredCell?.categoryId === cell.categoryId;
+                      const isSelected =
+                        selectedCell?.examId === cell.examId &&
+                        selectedCell?.categoryId === cell.categoryId;
 
                       return (
                         <div
                           key={cell.examId}
-                          onMouseEnter={() => setHoveredCell(cell)}
-                          onMouseLeave={() => setHoveredCell(null)}
-                          onClick={() => onSelectExam && onSelectExam(cell.examResult)}
+                          onClick={() => {
+                            setSelectedCell(prev =>
+                              prev?.examId === cell.examId && prev?.categoryId === cell.categoryId
+                                ? null
+                                : cell
+                            );
+                          }}
+                          title={`${cell.categoryLabel} • Bài #${cell.examIndex} (${cell.dateStr}): ${
+                            hasData ? `${cell.percentage}% (${cell.correct}/${cell.total} câu)` : 'Không có câu hỏi'
+                          } • Nhấp để xem chi tiết`}
                           className={`flex-1 min-w-[54px] max-w-[72px] h-12 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer relative border ${
                             !hasData ? 'bg-slate-100 dark:bg-slate-800/60 border-transparent' : ''
                           } ${
-                            isHovered
-                              ? 'scale-108 z-10 shadow-lg ring-2 ring-[#4f80b9] border-white dark:border-slate-800'
-                              : 'border-white/60 dark:border-slate-800/50 hover:scale-103'
+                            isSelected
+                              ? 'scale-108 z-10 shadow-lg ring-3 ring-[#4f80b9] border-white dark:border-slate-800'
+                              : 'border-white/60 dark:border-slate-800/50 hover:scale-105 hover:shadow-xs'
                           }`}
                           style={bgColor ? { backgroundColor: bgColor } : undefined}
                         >
@@ -459,34 +467,34 @@ export const HistoryHeatmap: React.FC<HistoryHeatmapProps> = ({
         </div>
       </div>
 
-      {/* Dynamic Hover Detail Card */}
-      {hoveredCell && (
-        <div className="bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-slate-700 animate-in fade-in duration-150">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#4f80b9]/30 text-[#dceeff] border border-[#7da7d9]/30">
-                Bài thi #{hoveredCell.examIndex} • {hoveredCell.dateStr}
+      {/* Selected Cell Inspection Card (Ice & Butter dual theme, persistent, no layout jerk on hover) */}
+      {selectedCell && (
+        <div className="bg-white dark:bg-[#152230] text-[#152230] dark:text-[#f4f8fd] p-4 sm:p-5 rounded-2xl shadow-sm border border-[#dceeff] dark:border-[#2e4359] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="space-y-1.5 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-lg bg-[#e6f1fc] dark:bg-[#1c2c3d] text-[#4f80b9] dark:text-[#7da7d9] border border-[#d0e4f7] dark:border-[#2e4359]">
+                Bài thi #{selectedCell.examIndex} • {selectedCell.dateStr}
               </span>
-              <span className="text-xs text-slate-300 font-medium">
-                {hoveredCell.examTitle} (Điểm: <strong className="text-white font-mono">{hoveredCell.score10.toFixed(1)}/10</strong>)
+              <span className="text-xs text-slate-500 dark:text-[#a6c5e8] font-medium">
+                {selectedCell.examTitle} (Điểm số: <strong className="text-[#152230] dark:text-white font-mono font-bold">{selectedCell.score10.toFixed(1)}/10</strong>)
               </span>
             </div>
 
-            <div className="text-sm font-bold text-white flex items-center gap-2">
-              <span>{hoveredCell.categoryLabel}</span>
-              {hoveredCell.percentage !== null && (
+            <div className="text-sm font-bold text-[#152230] dark:text-white flex items-center gap-2 flex-wrap">
+              <span>{selectedCell.categoryLabel}</span>
+              {selectedCell.percentage !== null && (
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-md font-extrabold ${
-                    hoveredCell.percentage >= 75
-                      ? 'bg-emerald-500 text-white'
-                      : hoveredCell.percentage >= 50
-                      ? 'bg-amber-500 text-slate-900'
-                      : 'bg-[#c25e5e] text-white'
+                  className={`text-xs px-2.5 py-0.5 rounded-md font-bold ${
+                    selectedCell.percentage >= 75
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                      : selectedCell.percentage >= 50
+                      ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                      : 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]'
                   }`}
                 >
-                  {hoveredCell.percentage >= 75
+                  {selectedCell.percentage >= 75
                     ? 'Xuất sắc'
-                    : hoveredCell.percentage >= 50
+                    : selectedCell.percentage >= 50
                     ? 'Đạt yêu cầu'
                     : 'Cần ôn luyện'}
                 </span>
@@ -494,31 +502,39 @@ export const HistoryHeatmap: React.FC<HistoryHeatmapProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {hoveredCell.percentage !== null ? (
+          <div className="flex items-center gap-3 self-end sm:self-center">
+            {selectedCell.percentage !== null ? (
               <div className="text-right">
-                <span className="text-2xl font-black text-emerald-400 font-mono">
-                  {hoveredCell.percentage}%
+                <span className="text-2xl font-black text-[#4f80b9] dark:text-[#7da7d9] font-mono block">
+                  {selectedCell.percentage}%
                 </span>
-                <span className="text-xs text-slate-300 block">
-                  Đúng {hoveredCell.correct} trên {hoveredCell.total} câu
+                <span className="text-xs text-slate-500 dark:text-[#a6c5e8] block">
+                  Đúng {selectedCell.correct}/{selectedCell.total} câu
                 </span>
               </div>
             ) : (
               <span className="text-xs text-slate-400 italic">
-                Bài thi này không có câu hỏi thuộc nhóm này
+                Bài thi không có câu nhóm này
               </span>
             )}
 
             {onSelectExam && (
               <button
-                onClick={() => onSelectExam(hoveredCell.examResult)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#4f80b9] hover:bg-[#4372a7] text-white text-xs font-bold transition-colors"
+                onClick={() => onSelectExam(selectedCell.examResult)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#4f80b9] hover:bg-[#4372a7] active:bg-[#396395] text-white text-xs font-bold shadow-xs transition-colors"
               >
-                <span>Xem lại bài</span>
+                <span>Xem lại bài thi</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             )}
+
+            <button
+              onClick={() => setSelectedCell(null)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Đóng bảng chi tiết"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
@@ -547,7 +563,7 @@ export const HistoryHeatmap: React.FC<HistoryHeatmapProps> = ({
 
         <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
           <Info className="w-3.5 h-3.5" />
-          <span>Nhấp vào ô bất kỳ để xem lại bài thi</span>
+          <span>Nhấp vào ô bất kỳ để xem phân tích chi tiết & mở bài thi</span>
         </div>
       </div>
     </div>

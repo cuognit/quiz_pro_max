@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
 import {
   Play,
   Clock,
@@ -25,15 +26,46 @@ interface ExamSetupViewProps {
   defaultMode?: 'standard' | 'custom' | 'practice';
 }
 
+const subTabVariants: Variants = {
+  enter: (dir: number) => ({
+    x: dir > 0 ? 30 : dir < 0 ? -30 : 0,
+    opacity: 0
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      x: { type: 'spring', stiffness: 420, damping: 32 },
+      opacity: { duration: 0.22, ease: 'easeOut' }
+    }
+  },
+  exit: (dir: number) => ({
+    x: dir > 0 ? -30 : dir < 0 ? 30 : 0,
+    opacity: 0,
+    transition: {
+      x: { duration: 0.18, ease: 'easeIn' },
+      opacity: { duration: 0.16, ease: 'easeIn' }
+    }
+  })
+};
+
 export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
   questions,
   onStartExam,
   defaultMode = 'standard'
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'standard' | 'custom'>('standard');
+  const [subTabDirection, setSubTabDirection] = useState<number>(0);
   const customSectionRef = useRef<HTMLDivElement>(null);
 
+  const handleSubTabChange = (newSubTab: 'standard' | 'custom') => {
+    if (newSubTab === activeSubTab) return;
+    setSubTabDirection(newSubTab === 'custom' ? 1 : -1);
+    setActiveSubTab(newSubTab);
+  };
+
   const handleScrollToCustom = () => {
+    setSubTabDirection(1);
     setActiveSubTab('custom');
     setTimeout(() => {
       customSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -337,31 +369,56 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
       {/* Tabs Switcher: Standard Matrix vs Custom Configurator */}
       <div ref={customSectionRef} className="flex border-b border-[#dceeff] dark:border-[#2e4359] scroll-mt-20">
         <button
-          onClick={() => setActiveSubTab('standard')}
-          className={`pb-3 px-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+          onClick={() => handleSubTabChange('standard')}
+          className={`relative pb-3 px-4 text-sm font-bold flex items-center gap-2 transition-colors ${
             activeSubTab === 'standard'
-              ? 'border-[#4f80b9] text-[#4f80b9] dark:border-[#7da7d9] dark:text-[#7da7d9]'
-              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'text-[#4f80b9] dark:text-[#7da7d9]'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           <Award className="w-4 h-4" />
           <span>Ma Trận Đề Thi Chuẩn (50 Câu)</span>
+          {activeSubTab === 'standard' && (
+            <motion.div
+              layoutId="examSubTabUnderline"
+              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#4f80b9] dark:bg-[#7da7d9] rounded-full"
+            />
+          )}
         </button>
 
         <button
-          onClick={() => setActiveSubTab('custom')}
-          className={`pb-3 px-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+          onClick={() => handleSubTabChange('custom')}
+          className={`relative pb-3 px-4 text-sm font-bold flex items-center gap-2 transition-colors ${
             activeSubTab === 'custom'
-              ? 'border-[#4f80b9] text-[#4f80b9] dark:border-[#7da7d9] dark:text-[#7da7d9]'
-              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'text-[#4f80b9] dark:text-[#7da7d9]'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           <Layers className="w-4 h-4" />
           <span>Tự Cấu Hình Số Câu & Nhóm</span>
+          {activeSubTab === 'custom' && (
+            <motion.div
+              layoutId="examSubTabUnderline"
+              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#4f80b9] dark:bg-[#7da7d9] rounded-full"
+            />
+          )}
         </button>
       </div>
 
-      {activeSubTab === 'standard' ? (
+      <div className="overflow-x-clip">
+        <AnimatePresence mode="wait" custom={subTabDirection}>
+          <motion.div
+            key={activeSubTab}
+            custom={subTabDirection}
+            variants={subTabVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="w-full"
+          >
+            {activeSubTab === 'standard' ? (
         <div className="rounded-2xl bg-white dark:bg-[#1c2c3d] p-6 sm:p-8 border border-[#dceeff] dark:border-[#2e4359] shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -695,6 +752,9 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
           </div>
         </div>
       )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   );
 };
