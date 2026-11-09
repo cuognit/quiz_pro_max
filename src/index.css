@@ -12,6 +12,32 @@
   }
 }
 
+/* Force cursor pointer on ALL buttons, clickable inputs, and interactive elements */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+select,
+summary,
+a,
+label:has(input),
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input:disabled,
+select:disabled {
+  cursor: not-allowed !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
