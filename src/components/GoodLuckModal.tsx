@@ -57,7 +57,7 @@ export const GoodLuckModal: React.FC<GoodLuckModalProps> = ({
       // ignore in headless
     }
 
-    // Continuous alternating cannons every 1.6s, auto-stop after 6.5s to prevent any CPU/battery drain
+    // Continuous alternating festival fireworks every 1.6s throughout modal open
     let leftTurn = true;
     const intervalId = setInterval(() => {
       try {
@@ -84,13 +84,8 @@ export const GoodLuckModal: React.FC<GoodLuckModalProps> = ({
       }
     }, 1600);
 
-    const stopTimer = setTimeout(() => {
-      clearInterval(intervalId);
-    }, 6500);
-
     return () => {
       clearInterval(intervalId);
-      clearTimeout(stopTimer);
     };
   }, [isOpen]);
 
