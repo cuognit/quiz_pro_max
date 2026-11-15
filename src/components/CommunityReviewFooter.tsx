@@ -4,11 +4,14 @@ import {
   ChevronDown,
   ChevronUp,
   Star,
+  Trash2,
   Users
 } from 'lucide-react';
 import {
   ReviewItem,
-  subscribeToCommunityReviews
+  subscribeToCommunityReviews,
+  deleteCommunityReview,
+  isMyReview
 } from '../utils/reviewsService';
 
 interface CommunityReviewFooterProps {
@@ -33,6 +36,7 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 5 | 4 | 'low'>('all');
   const [visibleCount, setVisibleCount] = useState<number>(6);
+  const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const unsubscribe = subscribeToCommunityReviews(updatedReviews => {
@@ -40,6 +44,22 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
     });
     return () => unsubscribe();
   }, []);
+
+  const handleDeleteReview = async (reviewId: string) => {
+    setDeletingIds(prev => ({ ...prev, [reviewId]: true }));
+    try {
+      await deleteCommunityReview(reviewId);
+      setReviews(prev => prev.filter(item => item.id !== reviewId));
+    } catch (error) {
+      console.error('Failed to delete review:', error);
+    } finally {
+      setDeletingIds(prev => {
+        const next = { ...prev };
+        delete next[reviewId];
+        return next;
+      });
+    }
+  };
 
   const stats = useMemo(() => {
     const total = reviews.length;
@@ -191,54 +211,83 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {displayedReviews.map(item => (
-                  <article
-                    key={item.id}
-                    className="rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-4 transition-colors flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-3 mb-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-[#4f80b9]/15 text-[#4f80b9] dark:text-[#7da7d9] font-bold text-xs flex items-center justify-center shrink-0">
-                            {item.authorName.trim().charAt(0).toUpperCase() || 'S'}
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-[var(--text-primary)] leading-tight">
-                              {item.authorName}
-                            </h4>
-                            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                              <span>{item.quickTag}</span>
-                              <span aria-hidden="true">·</span>
-                              <span className="tabular-nums">
-                                {formatRelativeTime(item.createdAt)}
-                              </span>
+                {displayedReviews.map(item => {
+                  const ownedByMe = isMyReview(item);
+                  const isDeleting = Boolean(deletingIds[item.id]);
+
+                  return (
+                    <article
+                      key={item.id}
+                      className="rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-4 transition-colors flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-[#4f80b9]/15 text-[#4f80b9] dark:text-[#7da7d9] font-bold text-xs flex items-center justify-center shrink-0">
+                              {item.authorName.trim().charAt(0).toUpperCase() || 'S'}
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-[var(--text-primary)] leading-tight">
+                                {item.authorName}
+                              </h4>
+                              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                <span>{item.quickTag}</span>
+                                <span aria-hidden="true">·</span>
+                                <span className="tabular-nums">
+                                  {formatRelativeTime(item.createdAt)}
+                                </span>
+                                {ownedByMe && (
+                                  <>
+                                    <span aria-hidden="true">·</span>
+                                    <span className="font-semibold text-[#4f80b9] dark:text-[#7da7d9]">
+                                      Của bạn
+                                    </span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div
+                              className="flex items-center gap-0.5"
+                              aria-label={`Đánh giá ${item.rating} trên 5 sao`}
+                            >
+                              {[1, 2, 3, 4, 5].map(star => (
+                                <Star
+                                  key={star}
+                                  className={`w-3.5 h-3.5 ${
+                                    star <= item.rating
+                                      ? 'text-amber-400 fill-amber-400'
+                                      : 'text-slate-300 dark:text-slate-600'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+
+                            {ownedByMe && (
+                              <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={() => handleDeleteReview(item.id)}
+                                title="Xoá đánh giá của bạn"
+                                aria-label="Xoá đánh giá của bạn"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 disabled:opacity-50 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>{isDeleting ? 'Đang xoá...' : 'Xoá'}</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
 
-                        <div
-                          className="flex items-center gap-0.5 shrink-0"
-                          aria-label={`Đánh giá ${item.rating} trên 5 sao`}
-                        >
-                          {[1, 2, 3, 4, 5].map(star => (
-                            <Star
-                              key={star}
-                              className={`w-3.5 h-3.5 ${
-                                star <= item.rating
-                                  ? 'text-amber-400 fill-amber-400'
-                                  : 'text-slate-300 dark:text-slate-600'
-                              }`}
-                            />
-                          ))}
-                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
+                          {item.comment}
+                        </p>
                       </div>
-
-                      <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
-                        {item.comment}
-                      </p>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
 

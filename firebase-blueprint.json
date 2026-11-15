@@ -31,6 +31,12 @@
           "type": "boolean",
           "description": "Flag indicating whether the review is publicly visible."
         },
+        "authorId": {
+          "type": "string",
+          "description": "Client identifier of the reviewer to allow deleting own reviews.",
+          "minLength": 1,
+          "maxLength": 64
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
