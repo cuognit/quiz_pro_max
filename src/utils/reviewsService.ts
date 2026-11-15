@@ -89,6 +89,8 @@ export function isMyReview(item: ReviewItem): boolean {
   if (myIds.includes(item.id)) return true;
   // Reviews created before authorId tracking in this app belong to the current creator
   if (!item.authorId) return true;
+  // Allow deleting test reviews
+  if (item.authorName === 'Tester') return true;
   return false;
 }
 
@@ -99,7 +101,13 @@ function getCachedLocalReviews(): ReviewItem[] {
     const raw = localStorage.getItem(LOCAL_REVIEWS_CACHE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Automatically filter out any legacy 'Tester' review
+    const cleaned = parsed.filter(item => item && item.authorName !== 'Tester');
+    if (cleaned.length !== parsed.length) {
+      saveCachedLocalReviews(cleaned);
+    }
+    return cleaned;
   } catch {
     return [];
   }
@@ -152,7 +160,8 @@ export function subscribeToCommunityReviews(
         if (
           typeof data.authorName === 'string' &&
           typeof data.rating === 'number' &&
-          typeof data.comment === 'string'
+          typeof data.comment === 'string' &&
+          data.authorName !== 'Tester'
         ) {
           remoteItems.push({
             id: docSnap.id,
@@ -192,13 +201,10 @@ export interface SubmitReviewInput {
 export async function submitCommunityReview(input: SubmitReviewInput): Promise<ReviewItem> {
   const sanitizedAuthor = (input.authorName.trim() || 'Sĩ tử SQA').slice(0, 40);
   const sanitizedRating = Math.min(5, Math.max(1, Math.round(Number(input.rating) || 5)));
-  const sanitizedComment = input.comment.trim().slice(0, 400);
   const sanitizedTag = (input.quickTag.trim() || QUICK_REVIEW_TAGS[0]).slice(0, 50);
+  const rawComment = (input.comment || '').trim();
+  const sanitizedComment = (rawComment || sanitizedTag || 'Trang web ôn thi rất hữu ích!').slice(0, 400);
   const authorId = getCurrentReviewerId().slice(0, 64);
-
-  if (!sanitizedComment) {
-    throw new Error('Vui lòng nhập nội dung đánh giá hoặc lời chúc.');
-  }
 
   const reviewId = `rev_${Date.now()}_${Math.random().toString(36).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8)}`;
   const nowMs = Date.now();

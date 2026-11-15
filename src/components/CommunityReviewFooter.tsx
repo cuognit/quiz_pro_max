@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Award,
   ChevronDown,
   ChevronUp,
+  PenLine,
+  Send,
   Star,
   Trash2,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import {
   ReviewItem,
   subscribeToCommunityReviews,
   deleteCommunityReview,
+  submitCommunityReview,
+  QUICK_REVIEW_TAGS,
   isMyReview
 } from '../utils/reviewsService';
 
@@ -37,6 +43,14 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 5 | 4 | 'low'>('all');
   const [visibleCount, setVisibleCount] = useState<number>(6);
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [newRating, setNewRating] = useState(5);
+  const [newHoverRating, setNewHoverRating] = useState<number | null>(null);
+  const [newTag, setNewTag] = useState(QUICK_REVIEW_TAGS[0]);
+  const [newAuthor, setNewAuthor] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToCommunityReviews(updatedReviews => {
@@ -58,6 +72,30 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
         delete next[reviewId];
         return next;
       });
+    }
+  };
+
+  const handleAddReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const created = await submitCommunityReview({
+        authorName: newAuthor,
+        rating: newRating,
+        comment: newComment.trim() || newTag,
+        quickTag: newTag
+      });
+      setReviews(prev => [created, ...prev.filter(r => r.id !== created.id)]);
+      setNewComment('');
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setIsFormOpen(false);
+        setSubmitSuccess(false);
+      }, 500);
+    } catch (err) {
+      console.error('Failed to submit review from footer:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -116,32 +154,146 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
             </h2>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] overflow-x-auto">
-            {[
-              { key: 'all' as const, label: 'Tất cả' },
-              { key: 5 as const, label: '5 Sao' },
-              { key: 4 as const, label: '4 Sao' },
-              { key: 'low' as const, label: '1–3 Sao' }
-            ].map(tab => {
-              const active = selectedFilter === tab.key;
-              return (
-                <button
-                  key={String(tab.key)}
-                  type="button"
-                  onClick={() => setSelectedFilter(tab.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                    active
-                      ? 'bg-[#4f80b9] text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          {/* Actions & Filter Tabs */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsFormOpen(prev => !prev)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shadow-xs ${
+                isFormOpen
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                  : 'bg-[#4f80b9] hover:bg-[#3f6ca0] text-white active:scale-98'
+              }`}
+            >
+              {isFormOpen ? <X className="w-3.5 h-3.5" /> : <PenLine className="w-3.5 h-3.5" />}
+              <span>{isFormOpen ? 'Đóng form' : '+ Viết đánh giá'}</span>
+            </button>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] overflow-x-auto">
+              {[
+                { key: 'all' as const, label: 'Tất cả' },
+                { key: 5 as const, label: '5 Sao' },
+                { key: 4 as const, label: '4 Sao' },
+                { key: 'low' as const, label: '1–3 Sao' }
+              ].map(tab => {
+                const active = selectedFilter === tab.key;
+                return (
+                  <button
+                    key={String(tab.key)}
+                    type="button"
+                    onClick={() => setSelectedFilter(tab.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                      active
+                        ? 'bg-[#4f80b9] text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
+
+        {/* Collapsible Quick Review Form (Accordion) */}
+        <AnimatePresence>
+          {isFormOpen && (
+            <motion.form
+              initial={{ opacity: 0, height: 0, y: -6 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              onSubmit={handleAddReview}
+              className="mt-5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] p-3.5 sm:p-4 space-y-2.5 overflow-hidden shadow-xs"
+            >
+              {/* Row 1: Star Rating + Quick Tags Chips */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-[var(--border-subtle)]">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Đánh giá:
+                  </span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map(star => {
+                      const active = star <= (newHoverRating ?? newRating);
+                      return (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewRating(star)}
+                          onMouseEnter={() => setNewHoverRating(star)}
+                          onMouseLeave={() => setNewHoverRating(null)}
+                          className="p-1 rounded hover:scale-120 transition-transform cursor-pointer"
+                        >
+                          <Star
+                            className={`w-5 h-5 transition-colors ${
+                              active
+                                ? 'text-amber-400 fill-amber-400'
+                                : 'text-slate-300 dark:text-slate-600'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    {newRating} sao
+                  </span>
+                </div>
+
+                {/* Quick tags */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {QUICK_REVIEW_TAGS.map(tag => {
+                    const isSelected = newTag === tag;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setNewTag(tag)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                          isSelected
+                            ? 'bg-[#4f80b9] text-white font-semibold'
+                            : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border border-[var(--border-subtle)] hover:bg-[var(--hover-bg)]'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Row 2: Name Input + Comment Input + Submit Button */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <input
+                  type="text"
+                  maxLength={40}
+                  value={newAuthor}
+                  onChange={e => setNewAuthor(e.target.value)}
+                  placeholder="Tên bạn (tùy chọn)"
+                  className="sm:w-48 px-3 py-1.5 rounded-xl bg-[var(--card-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#4f80b9]"
+                />
+                <input
+                  type="text"
+                  maxLength={400}
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  placeholder="Góp ý hoặc nhận xét ngắn (để trống lấy theo nhãn đã chọn)..."
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-[var(--card-surface)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#4f80b9]"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting || submitSuccess}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#4f80b9] hover:bg-[#3f6ca0] disabled:opacity-60 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{submitSuccess ? 'Đã lưu!' : isSubmitting ? 'Đang gửi...' : 'Gửi Đánh Giá'}</span>
+                </button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
 
         {/* Main Content: Left = Rating Summary, Right = Real User Reviews */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 items-start">

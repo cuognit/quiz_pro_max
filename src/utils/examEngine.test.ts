@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   generateStandardExam,
   generateCustomExam,
@@ -9,6 +12,9 @@ import {
   STANDARD_EXAM_BLUEPRINT
 } from './examEngine';
 import { Question, ActiveExamSession } from '../types/quiz';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Mock questions for testing
 const mockQuestions: Question[] = [];
@@ -170,4 +176,100 @@ test('calculateExamResult preserves details for re-attempt and continuation', ()
   const unansweredDetails = res.details.filter(d => d.userAnswer === null);
   assert.equal(unansweredDetails.length, 3);
   assert.equal(unansweredDetails[0].question.id, sample[2].id);
+});
+
+test('calculateExamResult handles all-skipped edge case correctly', () => {
+  const sample = mockQuestions.slice(0, 5);
+  const session: ActiveExamSession = {
+    id: 'test_all_skipped',
+    config: {
+      mode: 'standard',
+      title: 'Skipped All',
+      questionCount: 5,
+      durationMinutes: 10,
+      selectedGroups: [],
+      selectedCdrs: [],
+      selectedDifficulties: [],
+      shuffleQuestions: false,
+      shuffleOptions: false,
+      immediateFeedback: false
+    },
+    questions: sample,
+    userAnswers: {},
+    flaggedQuestions: {},
+    startedAt: 1000,
+    totalDurationSeconds: 600,
+    remainingSeconds: 0,
+    lastActiveAt: 1600,
+    currentQuestionIndex: 0,
+    isCompleted: true
+  };
+
+  const res = calculateExamResult(session);
+  assert.equal(res.correctCount, 0);
+  assert.equal(res.incorrectCount, 0);
+  assert.equal(res.skippedCount, 5);
+  assert.equal(res.score10, 0);
+  assert.equal(res.percentage, 0);
+  assert.equal(res.passed, false);
+  assert.equal(res.timeSpentSeconds, 600);
+});
+
+test('calculateExamResult handles 100% correct answers edge case', () => {
+  const sample = mockQuestions.slice(0, 4);
+  const session: ActiveExamSession = {
+    id: 'test_all_correct',
+    config: {
+      mode: 'custom',
+      title: 'Perfect Score',
+      questionCount: 4,
+      durationMinutes: 5,
+      selectedGroups: [],
+      selectedCdrs: [],
+      selectedDifficulties: [],
+      shuffleQuestions: false,
+      shuffleOptions: false,
+      immediateFeedback: false
+    },
+    questions: sample,
+    userAnswers: {
+      [sample[0].id]: sample[0].correctOption,
+      [sample[1].id]: sample[1].correctOption,
+      [sample[2].id]: sample[2].correctOption,
+      [sample[3].id]: sample[3].correctOption
+    },
+    flaggedQuestions: {},
+    startedAt: 1000,
+    totalDurationSeconds: 300,
+    remainingSeconds: 200,
+    lastActiveAt: 1100,
+    currentQuestionIndex: 3,
+    isCompleted: true
+  };
+
+  const res = calculateExamResult(session);
+  assert.equal(res.correctCount, 4);
+  assert.equal(res.incorrectCount, 0);
+  assert.equal(res.skippedCount, 0);
+  assert.equal(res.score10, 10.0);
+  assert.equal(res.percentage, 100);
+  assert.equal(res.passed, true);
+  assert.equal(res.timeSpentSeconds, 100);
+});
+
+test('generateStandardExam with real questions from questions.json generates valid 50-item exam', () => {
+  const realQuestions = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../data/questions.json'), 'utf8')
+  ) as Question[];
+
+  const exam = generateStandardExam(realQuestions, true);
+  assert.equal(exam.length, 50);
+
+  const ids = new Set(exam.map(q => q.id));
+  assert.equal(ids.size, 50);
+
+  for (const bp of STANDARD_EXAM_BLUEPRINT) {
+    const inGroup = exam.filter(q => q.group === bp.group);
+    assert.equal(inGroup.length, bp.count);
+  }
 });
