@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Review": {
+      "title": "Review",
+      "description": "Public website review and rating submitted by a user of SQA Quiz Pro.",
+      "type": "object",
+      "properties": {
+        "authorName": {
+          "type": "string",
+          "description": "Display name or nickname of the reviewer.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "rating": {
+          "type": "number",
+          "description": "Star rating from 1 to 5."
+        },
+        "comment": {
+          "type": "string",
+          "description": "Written review comment or good luck message.",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "quickTag": {
+          "type": "string",
+          "description": "Quick sentiment tag selected by the reviewer.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Flag indicating whether the review is publicly visible."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the review was created."
+        }
+      },
+      "required": [
+        "authorName",
+        "rating",
+        "comment",
+        "quickTag",
+        "isPublic",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/reviews/{reviewId}": {
+      "schema": {
+        "$ref": "#/entities/Review"
+      },
+      "description": "Collection of public community reviews displayed in the website footer."
+    }
+  }
+}

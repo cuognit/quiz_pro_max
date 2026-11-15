@@ -8,6 +8,8 @@ import { ExamResultView } from './components/ExamResultView';
 import { MistakesView } from './components/MistakesView';
 import { HistoryView } from './components/HistoryView';
 import { QuestionBankBrowser } from './components/QuestionBankBrowser';
+import { GoodLuckModal } from './components/GoodLuckModal';
+import { CommunityReviewFooter } from './components/CommunityReviewFooter';
 import questionsData from './data/questions.json';
 import { Question, ExamConfig, ActiveExamSession, ExamResult } from './types/quiz';
 import {
@@ -100,6 +102,7 @@ export default function App() {
   const [mistakes, setMistakes] = useState(getMistakeRecords());
   const [bookmarks, setBookmarks] = useState<string[]>(getBookmarks());
   const [filterBookmarksOnly, setFilterBookmarksOnly] = useState<boolean>(false);
+  const [isGoodLuckModalOpen, setIsGoodLuckModalOpen] = useState<boolean>(false);
 
   // Initialize theme
   useEffect(() => {
@@ -126,6 +129,8 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('autostart') === '1' && !savedSession) {
       startStandardExamAuto();
+    } else {
+      setIsGoodLuckModalOpen(true);
     }
   }, []);
 
@@ -563,19 +568,18 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Footer (hidden during active exam) */}
+      {/* Footer with Community Reviews (hidden during active exam) */}
       {!isCurrentlyInExam && (
-        <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#090d16] py-6 px-4 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p>
-              Hệ thống Luyện thi Trắc nghiệm SQA Pro Max • Đánh giá & Kiểm định chất lượng phần mềm
-            </p>
-            <p className="text-slate-400 dark:text-slate-500">
-              Tổng cộng <strong>{allQuestions.length} câu hỏi</strong> chuẩn • Tự động chấm điểm & Lưu lịch sử
-            </p>
-          </div>
-        </footer>
+        <CommunityReviewFooter
+          totalQuestionsCount={allQuestions.length}
+        />
       )}
+
+      {/* Welcome Good Luck & Review Modal */}
+      <GoodLuckModal
+        isOpen={isGoodLuckModalOpen && !isCurrentlyInExam}
+        onClose={() => setIsGoodLuckModalOpen(false)}
+      />
     </div>
   );
 }

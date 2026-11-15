@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll(['authorName', 'rating', 'comment', 'quickTag', 'isPublic', 'createdAt'])
+        && data.keys().hasOnly(['authorName', 'rating', 'comment', 'quickTag', 'isPublic', 'createdAt'])
+        && data.authorName is string
+        && data.authorName.size() >= 1
+        && data.authorName.size() <= 40
+        && data.rating is int
+        && data.rating >= 1
+        && data.rating <= 5
+        && data.comment is string
+        && data.comment.size() >= 1
+        && data.comment.size() <= 400
+        && data.quickTag is string
+        && data.quickTag.size() >= 1
+        && data.quickTag.size() <= 50
+        && data.isPublic is bool
+        && data.isPublic == true;
+    }
+
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && existing().isPublic == true;
+      allow list: if existing().isPublic == true;
+      allow create: if isValidId(reviewId)
+        && isValidReview(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
