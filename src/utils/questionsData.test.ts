@@ -52,11 +52,14 @@ test('every question has valid Big Data schema, clean text, 4 sorted options, an
     assert.equal(q.options.length, 4, `${prefix}: must have exactly 4 options, got ${q.options.length}`);
 
     const labels = ['A', 'B', 'C', 'D'];
+    const optionTexts = new Set<string>();
     q.options.forEach((opt, optIdx) => {
       assert.equal(opt.id, optIdx + 1, `${prefix}: Option #${optIdx + 1} id must be ${optIdx + 1}`);
       assert.equal(opt.label, labels[optIdx], `${prefix}: Option #${optIdx + 1} label must be ${labels[optIdx]}`);
       assert.ok(typeof opt.text === 'string' && opt.text.trim().length > 0, `${prefix}: Option ${labels[optIdx]} has empty text`);
+      optionTexts.add(opt.text.trim());
     });
+    assert.equal(optionTexts.size, 4, `${prefix}: all 4 options must be distinct (guards against truncated multi-line options)`);
 
     // Answer validation
     if (q.isDiscussion) {

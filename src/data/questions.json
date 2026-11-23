@@ -8444,22 +8444,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT SUM(amount) AS total"
+        "text": "SELECT SUM(amount) AS total\nFROM payments;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT store_id, amount AS total"
+        "text": "SELECT store_id, amount AS total\nFROM payments\nORDER BY store_id;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT store_id, SUM(amount) AS total"
+        "text": "SELECT store_id, SUM(amount) AS total\nFROM payments\nGROUP BY store_id;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT store_id, COUNT(*) AS total"
+        "text": "SELECT store_id, COUNT(*) AS total\nFROM payments\nGROUP BY store_id;"
       }
     ],
     "correctOption": 3,
@@ -8484,22 +8484,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT city, COUNT(*) AS visits_count"
+        "text": "SELECT city, COUNT(*) AS visits_count\nFROM visits\nGROUP BY city\nHAVING COUNT(*) >= 4;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT city, COUNT(*) AS visits_count"
+        "text": "SELECT city, COUNT(*) AS visits_count\nFROM visits\nWHERE COUNT(*) >= 4\nGROUP BY city;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT city, COUNT(*) AS visits_count"
+        "text": "SELECT city, COUNT(*) AS visits_count\nFROM visits\nGROUP BY city\nORDER BY visits_count DESC;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT city, COUNT(*) AS visits_count"
+        "text": "SELECT city, COUNT(*) AS visits_count\nFROM visits\nGROUP BY city\nLIMIT 4;"
       }
     ],
     "correctOption": 1,
@@ -8524,22 +8524,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT report_id, errors FROM reports"
+        "text": "SELECT report_id, errors FROM reports\nORDER BY errors ASC LIMIT 3;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT report_id, errors FROM reports"
+        "text": "SELECT report_id, errors FROM reports\nORDER BY report_id LIMIT 3;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT report_id, errors FROM reports"
+        "text": "SELECT report_id, errors FROM reports\nORDER BY errors DESC;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT report_id, errors FROM reports"
+        "text": "SELECT report_id, errors FROM reports\nORDER BY errors DESC LIMIT 3;"
       }
     ],
     "correctOption": 4,
@@ -9246,22 +9246,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT id FROM orders"
+        "text": "SELECT id FROM orders\nWHERE paid = 1 AND (channel = 'web' OR total > 200);"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT id FROM orders"
+        "text": "SELECT id FROM orders\nWHERE (paid = 1 AND channel = 'web') OR total > 200;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT id FROM orders"
+        "text": "SELECT id FROM orders\nWHERE paid = 1 AND channel = 'web' AND total > 200;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT id FROM orders"
+        "text": "SELECT id FROM orders\nWHERE paid = 1 OR channel = 'web' OR total > 200;"
       }
     ],
     "correctOption": 1,
@@ -9326,22 +9326,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT store_id, amount AS largest_invoice"
+        "text": "SELECT store_id, amount AS largest_invoice\nFROM invoices\nORDER BY amount DESC LIMIT 2;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT store_id, MIN(amount) AS largest_invoice"
+        "text": "SELECT store_id, MIN(amount) AS largest_invoice\nFROM invoices\nGROUP BY store_id\nORDER BY largest_invoice DESC LIMIT 2;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT store_id, MAX(amount) AS largest_invoice"
+        "text": "SELECT store_id, MAX(amount) AS largest_invoice\nFROM invoices\nGROUP BY store_id\nORDER BY largest_invoice DESC LIMIT 2;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT store_id, MAX(amount) AS largest_invoice"
+        "text": "SELECT store_id, MAX(amount) AS largest_invoice\nFROM invoices\nGROUP BY store_id\nORDER BY largest_invoice ASC LIMIT 2;"
       }
     ],
     "correctOption": 3,
@@ -9406,22 +9406,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT route, COUNT(*) AS n FROM tickets"
+        "text": "SELECT route, COUNT(*) AS n FROM tickets\nWHERE COUNT(*) >= 3\nGROUP BY route;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT route, COUNT(*) AS n FROM tickets"
+        "text": "SELECT route, COUNT(*) AS n FROM tickets\nWHERE canceled = 0\nGROUP BY route\nHAVING COUNT(*) >= 3;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT route, COUNT(*) AS n FROM tickets"
+        "text": "SELECT route, COUNT(*) AS n FROM tickets\nGROUP BY route\nHAVING COUNT(*) >= 3;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT route, COUNT(*) AS n FROM tickets"
+        "text": "SELECT route, COUNT(*) AS n FROM tickets\nWHERE canceled = 0\nGROUP BY route\nLIMIT 3;"
       }
     ],
     "correctOption": 2,
@@ -9486,22 +9486,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "db.books.find("
+        "text": "db.books.find(\n  {kind: \"science\"},\n  {title: 1, year: 1, _id: 0}\n)"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "db.books.find("
+        "text": "db.books.find(\n  {kind: \"science\"},\n  {title: 1, year: 1}\n)"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "db.books.find("
+        "text": "db.books.find(\n  {kind: \"science\"},\n  {title: 0, year: 0, _id: 0}\n)"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "db.books.find("
+        "text": "db.books.find(\n  {},\n  {title: 1, year: 1, _id: 0}\n)"
       }
     ],
     "correctOption": 1,
@@ -9766,22 +9766,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)"
+        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)\nRETURN a.code AS from_stop, b.code AS to_stop,\n       a.distance AS km;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)"
+        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)\nRETURN a.code AS from_stop, b.code AS to_stop,\n       b.distance AS km;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)"
+        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)\nRETURN a.code AS from_stop, b.code AS to_stop,\n       type(r) AS km;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)"
+        "text": "MATCH (a:Stop)-[r:ROAD]->(b:Stop)\nRETURN a.code AS from_stop, b.code AS to_stop,\n       r.distance AS km;"
       }
     ],
     "correctOption": 4,
@@ -9966,12 +9966,12 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT * FROM lab.meters"
+        "text": "SELECT * FROM lab.meters\nWHERE PK = 'M5';"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT * FROM meters.lab"
+        "text": "SELECT * FROM meters.lab\nWHERE PK = 'M5';"
       },
       {
         "id": 3,
@@ -9981,7 +9981,7 @@
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT * FROM lab.meters"
+        "text": "SELECT * FROM lab.meters\nWHERE PK = 'M8';"
       }
     ],
     "correctOption": 1,
@@ -10646,22 +10646,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "index=lab_logs"
+        "text": "index=lab_logs\n| stats count BY zone\n| sort count"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "index=lab_logs"
+        "text": "index=lab_logs\n| stats count BY zone\n| sort -count"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "index=lab_logs"
+        "text": "index=lab_logs\n| stats count BY zone\n| sort 1 -count"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "index=lab_logs"
+        "text": "index=lab_logs\n| stats count BY zone\n| sort 1 count"
       }
     ],
     "correctOption": 3,
@@ -10726,22 +10726,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "index=lab_logs source=\"lab.csv\" earliest=-15m latest=now"
+        "text": "index=lab_logs source=\"lab.csv\" earliest=-15m latest=now\n| stats count BY zone"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "index=lab_logs source=\"lab.csv\" earliest=-30m latest=now"
+        "text": "index=lab_logs source=\"lab.csv\" earliest=-30m latest=now\n| stats count BY zone"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "index=lab_logs earliest=-15m latest=now"
+        "text": "index=lab_logs earliest=-15m latest=now\n| stats count BY zone"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "index=lab_logs source=\"lab.csv\" earliest=-15m latest=now"
+        "text": "index=lab_logs source=\"lab.csv\" earliest=-15m latest=now\n| stats count"
       }
     ],
     "correctOption": 1,
@@ -11287,22 +11287,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "SELECT store_id, SUM(amount) AS total FROM sales"
+        "text": "SELECT store_id, SUM(amount) AS total FROM sales\nWHERE status = 'confirmed'\nGROUP BY store_id HAVING SUM(amount) >= 100;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT store_id, SUM(amount) AS total FROM sales"
+        "text": "SELECT store_id, SUM(amount) AS total FROM sales\nGROUP BY store_id HAVING SUM(amount) >= 100;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT store_id, total FROM ("
+        "text": "SELECT store_id, total FROM (\n  SELECT store_id, SUM(amount) AS total FROM sales\n  WHERE status = 'confirmed' GROUP BY store_id\n) AS totals\nWHERE total >= 100;"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "SELECT store_id, SUM(amount) AS total FROM sales"
+        "text": "SELECT store_id, SUM(amount) AS total FROM sales\nWHERE status = 'confirmed' AND amount >= 100\nGROUP BY store_id;"
       }
     ],
     "correctOption": 1,
@@ -11694,22 +11694,22 @@
       {
         "id": 1,
         "label": "A",
-        "text": "INSERT OVERWRITE TABLE report"
+        "text": "INSERT OVERWRITE TABLE report\nSELECT report_date, total FROM corrected_day;"
       },
       {
         "id": 2,
         "label": "B",
-        "text": "INSERT INTO TABLE report"
+        "text": "INSERT INTO TABLE report\nSELECT report_date, total FROM corrected_day;"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "DELETE FROM report"
+        "text": "DELETE FROM report\nWHERE report_date = DATE '2026-04-12';"
       },
       {
         "id": 4,
         "label": "D",
-        "text": "INSERT INTO TABLE report"
+        "text": "INSERT INTO TABLE report\nREPLACE WHERE report_date = DATE '2026-04-12'\nSELECT report_date, total FROM corrected_day;"
       }
     ],
     "correctOption": 4,
@@ -11739,12 +11739,12 @@
       {
         "id": 2,
         "label": "B",
-        "text": "SELECT sale_id, total FROM report VERSION AS OF 4"
+        "text": "SELECT sale_id, total FROM report VERSION AS OF 4\nWHERE sale_id = 'K1';"
       },
       {
         "id": 3,
         "label": "C",
-        "text": "SELECT sale_id, total FROM report"
+        "text": "SELECT sale_id, total FROM report\nWHERE sale_id = 'K1';"
       },
       {
         "id": 4,
