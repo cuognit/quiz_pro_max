@@ -32,16 +32,19 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
 }) => {
   const configSectionRef = useRef<HTMLDivElement>(null);
 
-  // Custom configuration state
-  const [questionCount, setQuestionCount] = useState<number>(30);
-  const [durationMinutes, setDurationMinutes] = useState<number>(30);
+  // Custom configuration state:
+  // Defaults requested by user:
+  // - All 5 batches selected
+  // - Max questions ("Tất cả (319)" / tracks max of selected batches by default)
+  // - Duration = 0 ("Tự do / Không giới hạn")
+  // - Shuffle questions = ON (true)
+  // - Immediate feedback = ON (true)
   const [selectedGroups, setSelectedGroups] = useState<number[]>([...ALL_BATCH_GROUPS]);
-  const [selectedCdrs, setSelectedCdrs] = useState<CdrType[]>([...ALL_CDRS]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<Difficulty[]>([
-    ...ALL_DIFFICULTIES
-  ]);
+  const [useMaxQuestions, setUseMaxQuestions] = useState<boolean>(true);
+  const [customQuestionCount, setCustomQuestionCount] = useState<number>(questions.length || 319);
+  const [durationMinutes, setDurationMinutes] = useState<number>(0);
   const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(true);
-  const [immediateFeedback, setImmediateFeedback] = useState<boolean>(false);
+  const [immediateFeedback, setImmediateFeedback] = useState<boolean>(true);
 
   // Stats per Batch (1..5)
   const batchStats = useMemo(() => {
@@ -60,18 +63,18 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
     });
   }, [questions]);
 
-  // Filtered pool count matching current selections
+  // Filtered pool count matching current batch selections
   const matchingPoolCount = useMemo(() => {
     return questions.filter(q => {
       if (selectedGroups.length > 0 && !selectedGroups.includes(q.group)) return false;
-      if (selectedCdrs.length > 0 && !selectedCdrs.includes(q.cdr)) return false;
-      if (selectedDifficulties.length > 0 && !selectedDifficulties.includes(q.difficulty)) return false;
       return true;
     }).length;
-  }, [questions, selectedGroups, selectedCdrs, selectedDifficulties]);
+  }, [questions, selectedGroups]);
 
   const effectiveMax = Math.max(1, matchingPoolCount || questions.length);
-  const effectiveQuestionCount = Math.min(questionCount, effectiveMax);
+  const effectiveQuestionCount = useMaxQuestions
+    ? effectiveMax
+    : Math.min(customQuestionCount, effectiveMax);
 
   const toggleGroup = (g: number) => {
     setSelectedGroups(prev =>
@@ -79,23 +82,8 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
     );
   };
 
-  const toggleCdr = (cdr: CdrType) => {
-    setSelectedCdrs(prev =>
-      prev.includes(cdr) ? prev.filter(item => item !== cdr) : [...prev, cdr]
-    );
-  };
-
-  const toggleDifficulty = (diff: Difficulty) => {
-    setSelectedDifficulties(prev =>
-      prev.includes(diff) ? prev.filter(item => item !== diff) : [...prev, diff]
-    );
-  };
-
   const handleStartCustom = () => {
     const activeGroups = selectedGroups.length > 0 ? selectedGroups : [...ALL_BATCH_GROUPS];
-    const activeCdrs = selectedCdrs.length > 0 ? selectedCdrs : [...ALL_CDRS];
-    const activeDiffs =
-      selectedDifficulties.length > 0 ? selectedDifficulties : [...ALL_DIFFICULTIES];
 
     const batchLabel =
       activeGroups.length === 5
@@ -112,8 +100,8 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
       questionCount: effectiveQuestionCount,
       durationMinutes,
       selectedGroups: activeGroups,
-      selectedCdrs: activeCdrs,
-      selectedDifficulties: activeDiffs,
+      selectedCdrs: [...ALL_CDRS] as CdrType[],
+      selectedDifficulties: [...ALL_DIFFICULTIES],
       shuffleQuestions,
       shuffleOptions: false,
       immediateFeedback
@@ -133,7 +121,7 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
       questionCount: preset.count,
       durationMinutes: preset.minutes,
       selectedGroups: preset.groups,
-      selectedCdrs: [...ALL_CDRS],
+      selectedCdrs: [...ALL_CDRS] as CdrType[],
       selectedDifficulties: [...ALL_DIFFICULTIES],
       shuffleQuestions: true,
       shuffleOptions: false,
@@ -179,48 +167,28 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
               type="button"
               onClick={() =>
                 launchPreset({
-                  title: 'Luyện Nhanh Big Data (15 Câu - 15 Phút)',
-                  count: 15,
-                  minutes: 15,
+                  title: `Ôn Toàn Bộ ${questions.length} Câu Big Data`,
+                  count: questions.length,
+                  minutes: 0,
                   groups: [...ALL_BATCH_GROUPS],
-                  immediate: false
-                })
-              }
-              className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-left transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-1.5 text-[#fff7cc] text-xs font-bold">
-                <Zap className="w-3.5 h-3.5" />
-                <span>Luyện Nhanh</span>
-              </div>
-              <span className="text-xs text-[#dceeff]/85">15 câu · 15 phút</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                launchPreset({
-                  title: 'Tổng Ôn Big Data (40 Câu - 45 Phút)',
-                  count: 40,
-                  minutes: 45,
-                  groups: [...ALL_BATCH_GROUPS],
-                  immediate: false
+                  immediate: true
                 })
               }
               className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-[#4f80b9]/40 hover:bg-[#4f80b9]/55 border border-[#7da7d9]/40 text-left transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-1.5 text-white text-xs font-bold">
-                <Target className="w-3.5 h-3.5 text-[#fff7cc]" />
-                <span>Tổng Ôn 5 Batch</span>
+                <BookOpen className="w-3.5 h-3.5 text-[#fff7cc]" />
+                <span>Ôn Hết Ngân Hàng</span>
               </div>
-              <span className="text-xs text-[#dceeff]/90">40 câu · 45 phút</span>
+              <span className="text-xs text-[#dceeff]/90">{questions.length} câu · Tự do</span>
             </button>
 
             <button
               type="button"
               onClick={() =>
                 launchPreset({
-                  title: 'Thực Chiến Code Batch 5 (30 Câu)',
-                  count: 30,
+                  title: 'Thực Chiến Code Batch 5 (116 Câu)',
+                  count: 116,
                   minutes: 0,
                   groups: [5],
                   immediate: true
@@ -232,15 +200,15 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
                 <Code2 className="w-3.5 h-3.5" />
                 <span>Thực Chiến Batch 5</span>
               </div>
-              <span className="text-xs text-[#dceeff]/85">30 câu · Hiện đáp án</span>
+              <span className="text-xs text-[#dceeff]/85">116 câu · Hiện đáp án</span>
             </button>
 
             <button
               type="button"
               onClick={() =>
                 launchPreset({
-                  title: `Ôn Toàn Bộ ${questions.length} Câu Big Data`,
-                  count: questions.length,
+                  title: 'Luyện Nhanh Big Data (20 Câu - Tự do)',
+                  count: 20,
                   minutes: 0,
                   groups: [...ALL_BATCH_GROUPS],
                   immediate: true
@@ -248,11 +216,31 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
               }
               className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-left transition-all cursor-pointer group"
             >
-              <div className="flex items-center gap-1.5 text-sky-300 text-xs font-bold">
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Ôn Hết Ngân Hàng</span>
+              <div className="flex items-center gap-1.5 text-[#fff7cc] text-xs font-bold">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Luyện Nhanh 20 Câu</span>
               </div>
-              <span className="text-xs text-[#dceeff]/85">{questions.length} câu · Tự do</span>
+              <span className="text-xs text-[#dceeff]/85">20 câu · Hiện đáp án</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                launchPreset({
+                  title: 'Thi Thử Big Data (40 Câu - 45 Phút)',
+                  count: 40,
+                  minutes: 45,
+                  groups: [...ALL_BATCH_GROUPS],
+                  immediate: false
+                })
+              }
+              className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-left transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-1.5 text-sky-300 text-xs font-bold">
+                <Target className="w-3.5 h-3.5" />
+                <span>Thi Thử 40 Câu</span>
+              </div>
+              <span className="text-xs text-[#dceeff]/85">40 câu · 45 phút</span>
             </button>
           </div>
         </div>
@@ -273,7 +261,7 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
                 Cấu Hình Đề Thi Theo Ý Muốn
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Chọn Batch kiến thức, CĐR, độ khó, số câu hỏi và thời gian làm bài phù hợp.
+                Chọn Batch kiến thức, số câu hỏi và thời gian làm bài phù hợp.
               </p>
             </div>
           </div>
@@ -374,80 +362,7 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
           </div>
         </div>
 
-        {/* Step 2: Optional CĐR & Difficulty filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-          <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                Lọc theo Chuẩn đầu ra (CĐR)
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedCdrs([...ALL_CDRS])}
-                className="text-[11px] font-semibold text-[#4f80b9] hover:underline cursor-pointer"
-              >
-                Tất cả
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {ALL_CDRS.map(cdr => {
-                const active = selectedCdrs.includes(cdr);
-                const count = questions.filter(q => q.cdr === cdr).length;
-                return (
-                  <button
-                    key={cdr}
-                    type="button"
-                    onClick={() => toggleCdr(cdr)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      active
-                        ? 'bg-[#4f80b9] text-white border-[#4f80b9] shadow-xs'
-                        : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:border-[#4f80b9]/50'
-                    }`}
-                  >
-                    {cdr} <span className="opacity-75">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                Lọc theo Độ khó
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedDifficulties([...ALL_DIFFICULTIES])}
-                className="text-[11px] font-semibold text-[#4f80b9] hover:underline cursor-pointer"
-              >
-                Tất cả
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {ALL_DIFFICULTIES.map(diff => {
-                const active = selectedDifficulties.includes(diff);
-                const count = questions.filter(q => q.difficulty === diff).length;
-                return (
-                  <button
-                    key={diff}
-                    type="button"
-                    onClick={() => toggleDifficulty(diff)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      active
-                        ? 'bg-[#4f80b9] text-white border-[#4f80b9] shadow-xs'
-                        : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:border-[#4f80b9]/50'
-                    }`}
-                  >
-                    {diff} <span className="opacity-75">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Step 3: Question Count & Duration */}
+        {/* Step 2: Question Count & Duration */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Question Count */}
           <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-3">
@@ -466,28 +381,49 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
               max={effectiveMax}
               step={1}
               value={effectiveQuestionCount}
-              onChange={e => setQuestionCount(Number(e.target.value))}
+              onChange={e => {
+                const nextVal = Number(e.target.value);
+                setCustomQuestionCount(nextVal);
+                setUseMaxQuestions(nextVal >= effectiveMax);
+              }}
               className="w-full accent-[#4f80b9] cursor-pointer"
             />
             <div className="flex flex-wrap gap-1.5">
-              {[10, 20, 30, 40, 60, effectiveMax].map((preset, idx) => {
+              {[10, 20, 30, 40, 60].map(preset => {
                 const val = Math.min(preset, effectiveMax);
-                const label = idx === 5 ? `Tất cả (${effectiveMax})` : `${val} câu`;
+                const isActive = !useMaxQuestions && effectiveQuestionCount === val;
                 return (
                   <button
-                    key={`${idx}-${val}`}
+                    key={preset}
                     type="button"
-                    onClick={() => setQuestionCount(val)}
+                    onClick={() => {
+                      setCustomQuestionCount(val);
+                      setUseMaxQuestions(val >= effectiveMax);
+                    }}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                      effectiveQuestionCount === val
+                      isActive
                         ? 'bg-[#4f80b9] text-white border-[#4f80b9]'
                         : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:bg-[var(--hover-bg)]'
                     }`}
                   >
-                    {label}
+                    {val} câu
                   </button>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => {
+                  setUseMaxQuestions(true);
+                  setCustomQuestionCount(effectiveMax);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                  useMaxQuestions || effectiveQuestionCount === effectiveMax
+                    ? 'bg-[#4f80b9] text-white border-[#4f80b9]'
+                    : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:bg-[var(--hover-bg)]'
+                }`}
+              >
+                Tất cả ({effectiveMax})
+              </button>
             </div>
           </div>
 
@@ -530,7 +466,7 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
           </div>
         </div>
 
-        {/* Step 4: Mode toggles & Launch Button */}
+        {/* Step 3: Mode toggles & Launch Button */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 pt-3 border-t border-[var(--border-subtle)]">
           <div className="flex flex-wrap items-center gap-3">
             <button

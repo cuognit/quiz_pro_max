@@ -303,10 +303,12 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                     return (
                       <div
                         key={opt.id}
-                        className={`p-3 rounded-2xl border flex items-start gap-2.5 ${style}`}
+                        className={`px-3.5 py-3 rounded-2xl border flex ${
+                          isMultilineCode ? 'items-start' : 'items-center'
+                        } gap-3 ${style}`}
                       >
                         <span
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                             isRevealed && isCorrect
                               ? 'bg-emerald-600 text-white'
                               : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -314,7 +316,7 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                         >
                           {opt.label}
                         </span>
-                        <span className={`pt-0.5 leading-snug whitespace-pre-line ${isMultilineCode ? 'font-mono text-xs' : ''}`}>
+                        <span className={`flex-1 leading-relaxed whitespace-pre-line ${isMultilineCode ? 'font-mono text-xs' : ''}`}>
                           {opt.text}
                         </span>
                       </div>

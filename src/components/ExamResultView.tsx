@@ -571,10 +571,12 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                       return (
                         <div
                           key={option.id}
-                          className={`p-3 rounded-xl border flex items-start gap-3 text-xs sm:text-sm ${rowStyle}`}
+                          className={`px-3.5 py-3 rounded-xl border flex ${
+                            isMultilineCode ? 'items-start' : 'items-center'
+                          } gap-3 text-xs sm:text-sm ${rowStyle}`}
                         >
                           <span
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                               !item.isDiscussion && isCorrectAnswer
                                 ? 'bg-emerald-600 text-white'
                                 : !item.isDiscussion && isUserChoice
@@ -587,20 +589,20 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                             {option.label}
                           </span>
                           <span
-                            className={`flex-1 pt-0.5 whitespace-pre-line ${
+                            className={`flex-1 leading-relaxed whitespace-pre-line ${
                               isMultilineCode ? 'font-mono text-xs' : ''
                             }`}
                           >
                             {option.text}
                           </span>
                           {!item.isDiscussion && isCorrectAnswer && (
-                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
+                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0 self-center">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               {isUserChoice ? 'Bạn chọn đúng' : 'Đáp án chuẩn'}
                             </span>
                           )}
                           {!item.isDiscussion && isUserChoice && !isCorrectAnswer && (
-                            <span className="text-[11px] font-bold text-[#b04848] dark:text-[#f0a8a8] flex items-center gap-1 shrink-0">
+                            <span className="text-[11px] font-bold text-[#b04848] dark:text-[#f0a8a8] flex items-center gap-1 shrink-0 self-center">
                               <XCircle className="w-3.5 h-3.5" />
                               Lựa chọn sai
                             </span>

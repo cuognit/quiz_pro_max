@@ -28,6 +28,36 @@ function renderInlineBold(segment: string, keyPrefix: string): React.ReactNode {
   });
 }
 
+/**
+ * Splits a bilingual question "English question? (Bản dịch tiếng Việt?)" into
+ * a crisp primary English block and a clean secondary Vietnamese subtitle block.
+ */
+function findTrailingTranslationSplit(text: string): { main: string; vi: string } | null {
+  const trimmed = text.trim();
+  if (!trimmed.endsWith(')') || trimmed.includes('\n')) return null;
+
+  let depth = 0;
+  let openIdx = -1;
+  for (let i = trimmed.length - 1; i >= 0; i--) {
+    const ch = trimmed[i];
+    if (ch === ')') depth++;
+    else if (ch === '(') {
+      depth--;
+      if (depth === 0) {
+        openIdx = i;
+        break;
+      }
+    }
+  }
+
+  if (openIdx <= 5) return null;
+  const main = trimmed.slice(0, openIdx).trim();
+  const vi = trimmed.slice(openIdx).trim();
+  // Only split if the trailing parenthetical looks like a full Vietnamese sentence translation (> 15 chars)
+  if (vi.length < 16) return null;
+  return { main, vi };
+}
+
 export const FormattedQuestionText: React.FC<FormattedQuestionTextProps> = ({
   text,
   className = '',
@@ -38,6 +68,20 @@ export const FormattedQuestionText: React.FC<FormattedQuestionTextProps> = ({
   const codeBlockRegex = /```(?:[a-zA-Z0-9_-]*)\r?\n?([\s\S]*?)```/g;
 
   if (!text.includes('```')) {
+    const bilingual = findTrailingTranslationSplit(text);
+    if (bilingual) {
+      return (
+        <div className={`space-y-1.5 leading-relaxed ${className}`}>
+          <div className="font-semibold text-slate-900 dark:text-slate-100">
+            {renderInlineBold(bilingual.main, 'main')}
+          </div>
+          <div className="text-sm sm:text-[15px] font-normal text-slate-600 dark:text-slate-400">
+            {renderInlineBold(bilingual.vi, 'vi')}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <span className={`whitespace-pre-line leading-relaxed ${className}`}>
         {renderInlineBold(text, 'plain')}

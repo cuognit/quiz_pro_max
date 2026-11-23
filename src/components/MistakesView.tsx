@@ -301,14 +301,16 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
                       return (
                         <div
                           key={option.id}
-                          className={`p-3 rounded-xl border flex items-start gap-3 text-xs sm:text-sm ${
+                          className={`px-3.5 py-3 rounded-xl border flex ${
+                            option.text.includes('\n') ? 'items-start' : 'items-center'
+                          } gap-3 text-xs sm:text-sm ${
                             isCorrect
                               ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200 font-medium'
                               : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/60 text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           <span
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                               isCorrect
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -316,7 +318,7 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
                           >
                             {option.label}
                           </span>
-                          <span className="flex-1 pt-0.5 whitespace-pre-line">{option.text}</span>
+                          <span className="flex-1 leading-relaxed whitespace-pre-line">{option.text}</span>
                           {isCorrect && (
                             <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
                               <CheckCircle2 className="w-3.5 h-3.5" />

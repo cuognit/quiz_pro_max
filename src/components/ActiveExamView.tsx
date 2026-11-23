@@ -96,6 +96,27 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
         return;
       }
 
+      const activeQ = sessionRef.current.questions[currentIndex];
+      const hasAnswer = activeQ
+        ? isQuestionAnswered(sessionRef.current.userAnswers[activeQ.id])
+        : false;
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (
+          activeQ &&
+          activeQ.isMultiSelect &&
+          sessionRef.current.config.immediateFeedback &&
+          hasAnswer &&
+          !checkedMultiMap[activeQ.id]
+        ) {
+          setCheckedMultiMap(prev => ({ ...prev, [activeQ.id]: true }));
+        } else if (hasAnswer && currentIndex < totalQuestions - 1) {
+          handleGoToQuestion(currentIndex + 1);
+        }
+        return;
+      }
+
       if (e.key === 'ArrowRight' || e.key === 'j' || e.key === 'J') {
         if (currentIndex < totalQuestions - 1) handleGoToQuestion(currentIndex + 1);
       } else if (e.key === 'ArrowLeft' || e.key === 'k' || e.key === 'K') {
@@ -116,55 +137,61 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, totalQuestions, showSubmitModal, showExitModal, zoomedImage]);
+  }, [currentIndex, totalQuestions, showSubmitModal, showExitModal, zoomedImage, checkedMultiMap]);
 
   const handleSelectOption = (optionId: number) => {
-    if (!currentQuestion) return;
+    const latestSession = sessionRef.current;
+    const activeQ = latestSession.questions[currentIndex];
+    if (!activeQ) return;
 
-    const newAnswers: Record<string, UserAnswerValue> = { ...session.userAnswers };
+    const newAnswers: Record<string, UserAnswerValue> = { ...latestSession.userAnswers };
 
-    if (currentQuestion.isMultiSelect) {
-      const currentList = normalizeUserAnswer(session.userAnswers[currentQuestion.id]);
+    if (activeQ.isMultiSelect) {
+      const currentList = normalizeUserAnswer(latestSession.userAnswers[activeQ.id]);
       const exists = currentList.includes(optionId);
       const nextList = exists
         ? currentList.filter(id => id !== optionId)
         : [...currentList, optionId].sort((a, b) => a - b);
 
       if (nextList.length === 0) {
-        delete newAnswers[currentQuestion.id];
+        delete newAnswers[activeQ.id];
       } else {
-        newAnswers[currentQuestion.id] = nextList;
+        newAnswers[activeQ.id] = nextList;
       }
       // Reset practice check state if user changes selection
-      setCheckedMultiMap(prev => ({ ...prev, [currentQuestion.id]: false }));
+      setCheckedMultiMap(prev => ({ ...prev, [activeQ.id]: false }));
     } else {
-      newAnswers[currentQuestion.id] = optionId;
+      newAnswers[activeQ.id] = optionId;
     }
 
     const updatedSession: ActiveExamSession = {
-      ...session,
+      ...latestSession,
       userAnswers: newAnswers,
       currentQuestionIndex: currentIndex,
       lastActiveAt: Date.now()
     };
 
+    sessionRef.current = updatedSession;
     saveActiveSession(updatedSession);
     onUpdateSession(updatedSession);
   };
 
   const handleToggleFlag = () => {
-    if (!currentQuestion) return;
-    const isFlagged = !session.flaggedQuestions[currentQuestion.id];
+    const latestSession = sessionRef.current;
+    const activeQ = latestSession.questions[currentIndex];
+    if (!activeQ) return;
+    const isFlagged = !latestSession.flaggedQuestions[activeQ.id];
     const newFlagged = {
-      ...session.flaggedQuestions,
-      [currentQuestion.id]: isFlagged
+      ...latestSession.flaggedQuestions,
+      [activeQ.id]: isFlagged
     };
 
     const updatedSession: ActiveExamSession = {
-      ...session,
+      ...latestSession,
       flaggedQuestions: newFlagged
     };
 
+    sessionRef.current = updatedSession;
     saveActiveSession(updatedSession);
     onUpdateSession(updatedSession);
   };
@@ -414,9 +441,12 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                               }
 
                               if (shouldRevealFeedback && !currentQuestion.isDiscussion) {
-                                if (isCorrectOpt) {
+                                if (isSelected && isCorrectOpt) {
                                   cardStyle =
                                     'border-2 border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs';
+                                } else if (!isSelected && isCorrectOpt) {
+                                  cardStyle =
+                                    'border-2 border-dashed border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100 font-bold shadow-xs';
                                 } else if (isSelected && !isCorrectOpt) {
                                   cardStyle =
                                     'border-2 border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/90 dark:bg-[#351e24]/70 text-[#8e3535] dark:text-[#f0a8a8] line-through opacity-90';
@@ -428,7 +458,9 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                                   key={option.id}
                                   type="button"
                                   onClick={() => handleSelectOption(option.id)}
-                                  className={`w-full p-4 rounded-2xl border text-left flex items-start gap-4 transition-all duration-150 cursor-pointer group hover:scale-[1.006] ${cardStyle}`}
+                                  className={`w-full px-4 py-3.5 rounded-2xl border text-left flex ${
+                                    isMultilineCode ? 'items-start' : 'items-center'
+                                  } gap-3.5 transition-all duration-150 cursor-pointer group hover:scale-[1.004] ${cardStyle}`}
                                 >
                                   {/* Option Badge (Rounded square for multi-select, rounded-xl for single) */}
                                   <span
@@ -439,15 +471,25 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                                         ? 'bg-[#4f80b9] text-white shadow-xs'
                                         : 'bg-[#dceeff]/60 dark:bg-[#152230] text-[#233446] dark:text-[#dceeff] group-hover:bg-[#4f80b9] group-hover:text-white'
                                     } ${
-                                      shouldRevealFeedback && !currentQuestion.isDiscussion && isCorrectOpt
-                                        ? 'bg-emerald-600 text-white font-black'
+                                      shouldRevealFeedback &&
+                                      !currentQuestion.isDiscussion &&
+                                      isSelected &&
+                                      isCorrectOpt
+                                        ? '!bg-emerald-600 !text-white font-black'
+                                        : ''
+                                    } ${
+                                      shouldRevealFeedback &&
+                                      !currentQuestion.isDiscussion &&
+                                      !isSelected &&
+                                      isCorrectOpt
+                                        ? '!bg-amber-500 !text-white font-black'
                                         : ''
                                     } ${
                                       shouldRevealFeedback &&
                                       !currentQuestion.isDiscussion &&
                                       isSelected &&
                                       !isCorrectOpt
-                                        ? 'bg-[#c25e5e] text-white font-black'
+                                        ? '!bg-[#c25e5e] !text-white font-black'
                                         : ''
                                     }`}
                                   >
@@ -456,21 +498,44 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
 
                                   {/* Option Text */}
                                   <div
-                                    className={`flex-1 pt-1 leading-relaxed whitespace-pre-line ${
+                                    className={`flex-1 leading-relaxed whitespace-pre-line ${
                                       isMultilineCode
-                                        ? 'font-mono text-xs sm:text-sm'
+                                        ? 'font-mono text-xs sm:text-sm bg-slate-900/5 dark:bg-black/25 px-3 py-2 rounded-xl border border-slate-200/60 dark:border-slate-700/50'
                                         : 'text-sm sm:text-base'
                                     }`}
                                   >
-                                    {option.text}
+                                    {!isMultilineCode && option.text.includes(' (') && option.text.endsWith(')') ? (
+                                      <>
+                                        <span>{option.text.slice(0, option.text.lastIndexOf(' ('))}</span>{' '}
+                                        <span className="text-slate-500 dark:text-slate-400 font-normal">
+                                          {option.text.slice(option.text.lastIndexOf(' ('))}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      option.text
+                                    )}
                                   </div>
 
-                                  {/* Hotkey hint indicator & checkmark */}
-                                  <div className="flex items-center gap-2 shrink-0 pt-1">
-                                    {isSelected ? (
+                                  {/* Explicit Status Badge / Hotkey hint indicator */}
+                                  <div className="flex items-center gap-2 shrink-0 self-center">
+                                    {shouldRevealFeedback && !currentQuestion.isDiscussion ? (
+                                      isSelected && isCorrectOpt ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-extrabold shadow-2xs">
+                                          ✓ Chọn đúng
+                                        </span>
+                                      ) : isSelected && !isCorrectOpt ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#c25e5e] text-white text-xs font-extrabold shadow-2xs">
+                                          ✗ Chọn sai
+                                        </span>
+                                      ) : !isSelected && isCorrectOpt ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 text-white text-xs font-extrabold shadow-2xs">
+                                          ⚠ Bỏ sót
+                                        </span>
+                                      ) : null
+                                    ) : isSelected ? (
                                       <CheckCircle2 className="w-5 h-5 text-[#4f80b9] dark:text-[#7da7d9]" />
                                     ) : (
-                                      <span className="hidden sm:inline-block text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md border border-[#dceeff] dark:border-[#293d52] text-[#4f80b9] dark:text-[#7da7d9] opacity-70 group-hover:opacity-100">
+                                      <span className="hidden sm:inline-flex items-center justify-center w-6 h-6 text-[11px] font-mono font-semibold rounded-lg border border-[#dceeff] dark:border-[#293d52] text-[#4f80b9] dark:text-[#7da7d9] opacity-75 group-hover:opacity-100">
                                         {optIdx + 1}
                                       </span>
                                     )}
@@ -485,7 +550,10 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                             currentQuestion.isMultiSelect &&
                             isAnswered &&
                             !checkedMultiMap[currentQuestion.id] && (
-                              <div className="pt-2">
+                              <div className="pt-2 flex items-center justify-between gap-3 flex-wrap p-3.5 rounded-2xl bg-purple-50/90 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-800/80">
+                                <span className="text-xs sm:text-sm font-semibold text-purple-900 dark:text-purple-200">
+                                  Đã chọn: <strong>{selectedList.map(id => String.fromCharCode(64 + id)).join(', ')}</strong> — Bấm kiểm tra để xem từng ý Đúng / Sai / Bỏ sót
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -494,9 +562,12 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                                       [currentQuestion.id]: true
                                     }))
                                   }
-                                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer"
+                                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs sm:text-sm font-extrabold shadow-sm transition-colors cursor-pointer flex items-center gap-2"
                                 >
-                                  Kiểm tra đáp án ({selectedList.map(id => String.fromCharCode(64 + id)).join(', ')})
+                                  <span>Kiểm tra đáp án</span>
+                                  <kbd className="px-1.5 py-0.5 rounded bg-purple-800/80 text-purple-100 font-mono text-[10px]">
+                                    Enter / Space
+                                  </kbd>
                                 </button>
                               </div>
                             )}
@@ -635,15 +706,36 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               )}
             </AnimatePresence>
 
-            {/* Desktop Shortcuts Helper Pill */}
-            <div className="hidden lg:flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-2">
-              <div className="flex items-center gap-3">
-                <span>Phím tắt:</span>
-                <span><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">1-4</kbd> Chọn đáp án</span>
-                <span><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">← / →</kbd> Chuyển câu</span>
-                <span><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">F</kbd> Đánh dấu</span>
+            {/* Always-Visible Keyboard Shortcuts Helper Bar */}
+            <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300 px-4 py-2.5 rounded-2xl bg-white dark:bg-[#1c2c3d] border border-[#dceeff] dark:border-[#293d52] shadow-2xs">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-bold text-[#152230] dark:text-[#fff7cc]">Phím tắt:</span>
+                <span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold">
+                    1-4
+                  </kbd>{' '}
+                  Chọn đáp án
+                </span>
+                <span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold">
+                    Enter / Space
+                  </kbd>{' '}
+                  Kiểm tra / Câu tiếp
+                </span>
+                <span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold">
+                    ← / →
+                  </kbd>{' '}
+                  Chuyển câu
+                </span>
+                <span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold">
+                    F
+                  </kbd>{' '}
+                  Đánh dấu
+                </span>
               </div>
-              <span>Big Data Quiz Pro</span>
+              <span className="font-bold text-[#4f80b9] dark:text-[#7da7d9]">Big Data Quiz Pro</span>
             </div>
           </div>
 
