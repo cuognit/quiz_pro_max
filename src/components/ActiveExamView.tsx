@@ -441,12 +441,9 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                               }
 
                               if (shouldRevealFeedback && !currentQuestion.isDiscussion) {
-                                if (isSelected && isCorrectOpt) {
+                                if (isCorrectOpt) {
                                   cardStyle =
                                     'border-2 border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs';
-                                } else if (!isSelected && isCorrectOpt) {
-                                  cardStyle =
-                                    'border-2 border-dashed border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 text-amber-950 dark:text-amber-100 font-bold shadow-xs';
                                 } else if (isSelected && !isCorrectOpt) {
                                   cardStyle =
                                     'border-2 border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/90 dark:bg-[#351e24]/70 text-[#8e3535] dark:text-[#f0a8a8] line-through opacity-90';
@@ -471,18 +468,8 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                                         ? 'bg-[#4f80b9] text-white shadow-xs'
                                         : 'bg-[#dceeff]/60 dark:bg-[#152230] text-[#233446] dark:text-[#dceeff] group-hover:bg-[#4f80b9] group-hover:text-white'
                                     } ${
-                                      shouldRevealFeedback &&
-                                      !currentQuestion.isDiscussion &&
-                                      isSelected &&
-                                      isCorrectOpt
+                                      shouldRevealFeedback && !currentQuestion.isDiscussion && isCorrectOpt
                                         ? '!bg-emerald-600 !text-white font-black'
-                                        : ''
-                                    } ${
-                                      shouldRevealFeedback &&
-                                      !currentQuestion.isDiscussion &&
-                                      !isSelected &&
-                                      isCorrectOpt
-                                        ? '!bg-amber-500 !text-white font-black'
                                         : ''
                                     } ${
                                       shouldRevealFeedback &&
@@ -516,23 +503,9 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                                     )}
                                   </div>
 
-                                  {/* Explicit Status Badge / Hotkey hint indicator */}
+                                  {/* Clean original right indicator: checkmark when selected, hotkey number otherwise */}
                                   <div className="flex items-center gap-2 shrink-0 self-center">
-                                    {shouldRevealFeedback && !currentQuestion.isDiscussion ? (
-                                      isSelected && isCorrectOpt ? (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-extrabold shadow-2xs">
-                                          ✓ Chọn đúng
-                                        </span>
-                                      ) : isSelected && !isCorrectOpt ? (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#c25e5e] text-white text-xs font-extrabold shadow-2xs">
-                                          ✗ Chọn sai
-                                        </span>
-                                      ) : !isSelected && isCorrectOpt ? (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 text-white text-xs font-extrabold shadow-2xs">
-                                          ⚠ Bỏ sót
-                                        </span>
-                                      ) : null
-                                    ) : isSelected ? (
+                                    {isSelected ? (
                                       <CheckCircle2 className="w-5 h-5 text-[#4f80b9] dark:text-[#7da7d9]" />
                                     ) : (
                                       <span className="hidden sm:inline-flex items-center justify-center w-6 h-6 text-[11px] font-mono font-semibold rounded-lg border border-[#dceeff] dark:border-[#293d52] text-[#4f80b9] dark:text-[#7da7d9] opacity-75 group-hover:opacity-100">
