@@ -201,7 +201,7 @@ export const GoodLuckModal: React.FC<GoodLuckModalProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-                      Tự tin chinh phục 299 câu hỏi SQA. Hãy dành 5s đánh giá nhanh trang web nhé:
+                      Tự tin chinh phục 319 câu hỏi Big Data. Hãy dành 5s đánh giá nhanh trang web nhé:
                     </p>
                   </div>
                 </div>

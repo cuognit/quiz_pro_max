@@ -73,9 +73,9 @@ test('ActiveSession: saves, updates timestamp, retrieves, and clears successfull
   const session: ActiveExamSession = {
     id: 'session_001',
     config: {
-      mode: 'standard',
-      title: 'Thi thử chuẩn',
-      questionCount: 50,
+      mode: 'custom',
+      title: 'Thi thử Big Data',
+      questionCount: 40,
       durationMinutes: 45,
       selectedGroups: [],
       selectedCdrs: [],
@@ -119,13 +119,17 @@ test('ExamHistory: saves results, deduplicates by id, respects cap of 50, and cl
   const sampleResult: ExamResult = {
     id: 'res_001',
     title: 'Bài thi thử số 1',
-    mode: 'standard',
+    mode: 'custom',
     completedAt: 2000,
     totalDurationSeconds: 1200,
     totalQuestions: 10,
+    gradedQuestions: 10,
+    discussionCount: 0,
     correctCount: 8,
+    partialCount: 0,
     incorrectCount: 1,
     skippedCount: 1,
+    earnedPoints: 8,
     score10: 8.0,
     percentage: 80,
     passed: true,
@@ -174,13 +178,17 @@ test('MistakesBank: records wrong answers, resolves when corrected, and deletes'
   const result: ExamResult = {
     id: 'res_mistakes',
     title: 'Test Mistakes',
-    mode: 'standard',
+    mode: 'custom',
     completedAt: 2000,
     totalDurationSeconds: 600,
     totalQuestions: 2,
+    gradedQuestions: 2,
+    discussionCount: 0,
     correctCount: 0,
+    partialCount: 0,
     incorrectCount: 2,
     skippedCount: 0,
+    earnedPoints: 0,
     score10: 0,
     percentage: 0,
     passed: false,
@@ -193,14 +201,20 @@ test('MistakesBank: records wrong answers, resolves when corrected, and deletes'
       {
         question: q1,
         userAnswer: 2, // wrong (correct is 1)
+        userAnswersList: [2],
         correctAnswer: 1,
+        correctAnswersList: [1],
+        scoreRatio: 0,
         isCorrect: false,
         isSkipped: false
       },
       {
         question: q2,
         userAnswer: 3, // wrong (correct is 1)
+        userAnswersList: [3],
         correctAnswer: 1,
+        correctAnswersList: [1],
+        scoreRatio: 0,
         isCorrect: false,
         isSkipped: false
       }
@@ -232,7 +246,10 @@ test('MistakesBank: records wrong answers, resolves when corrected, and deletes'
       {
         question: q2,
         userAnswer: 1, // now correct!
+        userAnswersList: [1],
         correctAnswer: 1,
+        correctAnswersList: [1],
+        scoreRatio: 1,
         isCorrect: true,
         isSkipped: false
       }

@@ -93,11 +93,11 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
               <BookOpen className="w-5 h-5" />
             </div>
             <h1 className="text-2xl font-extrabold text-[#152230] dark:text-[#f4f8fd]">
-              Ngân Hàng 300 Câu Hỏi SQA
+              Ngân Hàng {questions.length} Câu Hỏi Big Data
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-[#a6c5e8] mt-1">
-            Tra cứu và học tập toàn bộ ngân hàng câu hỏi môn Đánh giá và kiểm định chất lượng phần mềm
+            Tra cứu và ôn tập toàn bộ ngân hàng câu hỏi Dữ liệu lớn (5 Batch · Song ngữ & Thực hành truy vấn)
           </p>
         </div>
 
@@ -143,13 +143,12 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
             onChange={e => setSelectedGroup(e.target.value === 'all' ? 'all' : Number(e.target.value))}
             className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
-            <option value="all">Tất cả nhóm (1 - 6)</option>
-            <option value="1">Group 1: Dễ - CĐR 1.1 (49 câu)</option>
-            <option value="2">Group 2: TB - CĐR 1.1 (97 câu)</option>
-            <option value="3">Group 3: Khó - CĐR 1.1 (19 câu)</option>
-            <option value="4">Group 4: Dễ - CĐR 2.1 (20 câu)</option>
-            <option value="5">Group 5: TB - CĐR 2.1 (74 câu)</option>
-            <option value="6">Group 6: Khó - CĐR 2.1 (40 câu)</option>
+            <option value="all">Tất cả Batch (1 - 5)</option>
+            <option value="1">Batch 1: Tổng quan & 6V (46 câu)</option>
+            <option value="2">Batch 2: NoSQL, ML & Spark (52 câu)</option>
+            <option value="3">Batch 3: Stream, ACID/BASE & CAP (45 câu)</option>
+            <option value="4">Batch 4: SQL, Graph & ETL (60 câu)</option>
+            <option value="5">Batch 5: Thực hành & Truy vấn (116 câu)</option>
           </select>
 
           {/* Difficulty Filter */}
@@ -159,9 +158,9 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
             className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
             <option value="all">Tất cả mức độ khó</option>
-            <option value="DỄ">Dễ (69 câu)</option>
-            <option value="TRUNG BÌNH">Trung bình (171 câu)</option>
-            <option value="KHÓ">Khó (59 câu)</option>
+            <option value="DỄ">Dễ</option>
+            <option value="TRUNG BÌNH">Trung bình</option>
+            <option value="KHÓ">Khó</option>
           </select>
 
           {/* CDR Filter */}
@@ -171,8 +170,10 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
             className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
             <option value="all">Tất cả Chuẩn đầu ra</option>
-            <option value="CĐR 1.1">CĐR 1.1: Lý thuyết & Kỹ thuật</option>
-            <option value="CĐR 2.1">CĐR 2.1: Công cụ & Luồng dữ liệu</option>
+            <option value="CĐR 1.1">CĐR 1.1: Kiến thức nền tảng</option>
+            <option value="CĐR 2.1">CĐR 2.1: Lưu trữ & Xử lý</option>
+            <option value="CĐR 3.1">CĐR 3.1: Hệ phân tán & ML</option>
+            <option value="Thực hành">Thực hành & Truy vấn (Batch 4-5)</option>
           </select>
         </div>
 
@@ -290,7 +291,9 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                 {/* Options */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
                   {q.options.map(opt => {
-                    const isCorrect = opt.id === q.correctOption;
+                    const correctList = q.correctOptions?.length ? q.correctOptions : q.correctOption > 0 ? [q.correctOption] : [];
+                    const isCorrect = !q.isDiscussion && correctList.includes(opt.id);
+                    const isMultilineCode = opt.text.includes('\n');
                     let style = 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300';
 
                     if (isRevealed && isCorrect) {
@@ -311,11 +314,20 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
                         >
                           {opt.label}
                         </span>
-                        <span className="pt-0.5 leading-snug">{opt.text}</span>
+                        <span className={`pt-0.5 leading-snug whitespace-pre-line ${isMultilineCode ? 'font-mono text-xs' : ''}`}>
+                          {opt.text}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
+
+                {/* Explanation if revealed */}
+                {isRevealed && q.explanation && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs text-slate-700 dark:text-slate-300">
+                    <strong className="text-[#4f80b9] dark:text-[#7da7d9]">Giải thích / Ghi chú:</strong> {q.explanation}
+                  </div>
+                )}
 
                 {/* Answer reveal bar */}
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
@@ -331,9 +343,19 @@ export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
 
                   {isRevealed && (
                     <div className="text-slate-700 dark:text-slate-300">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        Đáp án đúng: {String.fromCharCode(64 + q.correctOption)}.
-                      </span>{' '}
+                      {q.isDiscussion ? (
+                        <span className="font-bold text-sky-600 dark:text-sky-400">
+                          Câu hỏi thảo luận (không chấm điểm)
+                        </span>
+                      ) : (
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          Đáp án đúng:{' '}
+                          {(q.correctOptions?.length ? q.correctOptions : [q.correctOption])
+                            .map(id => String.fromCharCode(64 + id))
+                            .join(', ')}
+                          .
+                        </span>
+                      )}{' '}
                       <span className="text-slate-400">({q.topic})</span>
                     </div>
                   )}

@@ -75,7 +75,9 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   };
 
   const handleShare = () => {
-    const text = `Tôi vừa đạt ${result.score10}/10 điểm (${result.correctCount}/${result.totalQuestions} câu) bài thi trắc nghiệm môn Đánh giá và kiểm định chất lượng phần mềm (SQA)!`;
+    const graded = result.gradedQuestions ?? result.totalQuestions;
+    const earned = result.earnedPoints ?? result.correctCount;
+    const text = `Tôi vừa đạt ${result.score10}/10 điểm (${earned}/${graded} điểm câu) bài thi trắc nghiệm môn Dữ liệu lớn (Big Data)!`;
     navigator.clipboard?.writeText(text);
     setShowShareToast(true);
     setTimeout(() => setShowShareToast(false), 2500);
@@ -83,7 +85,7 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
 
   // Filter details
   const filteredDetails = result.details.filter(d => {
-    if (filter === 'wrong' && (d.isCorrect || d.isSkipped)) return false;
+    if (filter === 'wrong' && (d.isCorrect || d.isSkipped || d.isDiscussion)) return false;
     if (filter === 'correct' && !d.isCorrect) return false;
     if (filter === 'skipped' && !d.isSkipped) return false;
     if (filter === 'flagged' && !bookmarkedIds.includes(d.question.id)) return false;
@@ -97,7 +99,7 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   });
 
   const wrongQuestions = result.details
-    .filter(d => !d.isCorrect && !d.isSkipped)
+    .filter(d => !d.isCorrect && !d.isSkipped && !d.isDiscussion)
     .map(d => d.question);
 
   const secondsPerQuestion =
@@ -180,7 +182,15 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
             </div>
 
             <p className="text-xs text-slate-400 mt-3 font-medium">
-              Đúng: <strong className="text-emerald-400">{result.correctCount}</strong> • Sai: <strong className="text-[#f0a8a8]">{result.incorrectCount}</strong> • Bỏ qua: <strong className="text-slate-400">{result.skippedCount}</strong>
+              Đúng: <strong className="text-emerald-400">{result.correctCount}</strong>
+              {(result.partialCount ?? 0) > 0 && (
+                <> • 1 phần: <strong className="text-amber-300">{result.partialCount}</strong></>
+              )}
+              {' '}• Sai: <strong className="text-[#f0a8a8]">{result.incorrectCount}</strong>
+              {' '}• Bỏ qua: <strong className="text-slate-400">{result.skippedCount}</strong>
+              {(result.discussionCount ?? 0) > 0 && (
+                <> • Thảo luận: <strong className="text-sky-300">{result.discussionCount}</strong></>
+              )}
             </p>
           </div>
         </div>
@@ -265,7 +275,7 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
             <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
               Theo Chuẩn Đầu Ra (CĐR)
             </h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Học phần SQA</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Học phần Big Data</span>
           </div>
 
           <div className="space-y-4">
@@ -273,10 +283,10 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               <div key={cdr} className="space-y-1.5">
                 <div className="flex justify-between text-xs sm:text-sm">
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    {cdr} ({cdr === 'CĐR 1.1' ? 'Lý thuyết & Kỹ thuật' : 'Thực hành & Công cụ'})
+                    {cdr}
                   </span>
                   <span className="font-bold text-[#4f80b9] dark:text-[#7da7d9] font-mono">
-                    {stat.correct}/{stat.total} câu ({stat.percentage}%)
+                    {stat.correct}/{stat.total} ({stat.percentage}%)
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
@@ -442,16 +452,24 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
               Không tìm thấy câu hỏi nào phù hợp với bộ lọc.
             </div>
           ) : (
-            filteredDetails.map((item, index) => {
+            filteredDetails.map(item => {
               const q = item.question;
               const isBookmarked = bookmarkedIds.includes(q.id);
+              const gradedCount = result.gradedQuestions || result.totalQuestions || 1;
+              const questionPoint = ((item.scoreRatio ?? (item.isCorrect ? 1 : 0)) * (10 / gradedCount)).toFixed(2);
+              const userList = item.userAnswersList ?? (typeof item.userAnswer === 'number' ? [item.userAnswer] : Array.isArray(item.userAnswer) ? item.userAnswer : []);
+              const correctList = item.correctAnswersList ?? (q.correctOptions?.length ? q.correctOptions : q.correctOption > 0 ? [q.correctOption] : []);
 
               return (
                 <div
                   key={q.id}
                   className={`p-5 rounded-3xl border transition-all ${
-                    item.isCorrect
+                    item.isDiscussion
+                      ? 'border-sky-200 dark:border-sky-900/60 bg-sky-50/30 dark:bg-sky-950/20'
+                      : item.isCorrect
                       ? 'border-emerald-200 dark:border-emerald-900/60 bg-white dark:bg-slate-900/80'
+                      : item.isPartial
+                      ? 'border-amber-300 dark:border-amber-800/70 bg-amber-50/30 dark:bg-amber-950/20'
                       : item.isSkipped
                       ? 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40'
                       : 'border-[#f5c6cb] dark:border-[#522b34] bg-white dark:bg-[#1c2c3d]'
@@ -462,17 +480,28 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg ${
-                          item.isCorrect
+                          item.isDiscussion
+                            ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300'
+                            : item.isCorrect
                             ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                            : item.isPartial
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
                             : item.isSkipped
                             ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                             : 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]'
                         }`}
                       >
-                        {item.isCorrect ? (
+                        {item.isDiscussion ? (
+                          <>Thảo luận (Không tính điểm)</>
+                        ) : item.isCorrect ? (
                           <>
                             <Check className="w-3.5 h-3.5" />
-                            Đúng (+{(10 / result.totalQuestions).toFixed(2)}đ)
+                            Đúng (+{questionPoint}đ)
+                          </>
+                        ) : item.isPartial ? (
+                          <>
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            Đúng 1 phần (+{questionPoint}đ)
                           </>
                         ) : item.isSkipped ? (
                           <>Chưa làm (0đ)</>
@@ -490,6 +519,11 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                       <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                         {q.groupName} • {q.cdr}
                       </span>
+                      {q.isMultiSelect && (
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300">
+                          Đa đáp án
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -518,15 +552,20 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                   {/* Options List */}
                   <div className="space-y-2 mb-3">
                     {q.options.map(option => {
-                      const isUserChoice = item.userAnswer === option.id;
-                      const isCorrectAnswer = q.correctOption === option.id;
+                      const isUserChoice = userList.includes(option.id);
+                      const isCorrectAnswer = correctList.includes(option.id);
+                      const isMultilineCode = option.text.includes('\n');
 
                       let rowStyle = 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300';
 
-                      if (isCorrectAnswer) {
-                        rowStyle = 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 font-medium';
-                      } else if (isUserChoice && !isCorrectAnswer) {
-                        rowStyle = 'border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/80 dark:bg-[#351e24]/60 text-[#8e3535] dark:text-[#f0a8a8] line-through';
+                      if (!item.isDiscussion) {
+                        if (isCorrectAnswer) {
+                          rowStyle = 'border-emerald-400 dark:border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 font-medium';
+                        } else if (isUserChoice && !isCorrectAnswer) {
+                          rowStyle = 'border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/80 dark:bg-[#351e24]/60 text-[#8e3535] dark:text-[#f0a8a8] line-through';
+                        }
+                      } else if (isUserChoice) {
+                        rowStyle = 'border-sky-400 dark:border-sky-600 bg-sky-50/70 dark:bg-sky-950/40 text-sky-950 dark:text-sky-100 font-medium';
                       }
 
                       return (
@@ -536,32 +575,48 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
                         >
                           <span
                             className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                              isCorrectAnswer
+                              !item.isDiscussion && isCorrectAnswer
                                 ? 'bg-emerald-600 text-white'
-                                : isUserChoice
+                                : !item.isDiscussion && isUserChoice
                                 ? 'bg-[#c25e5e] text-white'
+                                : isUserChoice
+                                ? 'bg-sky-600 text-white'
                                 : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                             }`}
                           >
                             {option.label}
                           </span>
-                          <span className="flex-1 pt-0.5">{option.text}</span>
-                          {isCorrectAnswer && (
+                          <span
+                            className={`flex-1 pt-0.5 whitespace-pre-line ${
+                              isMultilineCode ? 'font-mono text-xs' : ''
+                            }`}
+                          >
+                            {option.text}
+                          </span>
+                          {!item.isDiscussion && isCorrectAnswer && (
                             <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              Đáp án chuẩn
+                              {isUserChoice ? 'Bạn chọn đúng' : 'Đáp án chuẩn'}
                             </span>
                           )}
-                          {isUserChoice && !isCorrectAnswer && (
+                          {!item.isDiscussion && isUserChoice && !isCorrectAnswer && (
                             <span className="text-[11px] font-bold text-[#b04848] dark:text-[#f0a8a8] flex items-center gap-1 shrink-0">
                               <XCircle className="w-3.5 h-3.5" />
-                              Lựa chọn của bạn
+                              Lựa chọn sai
                             </span>
                           )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* Explanation / Note if available */}
+                  {q.explanation && (
+                    <div className="mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                      <strong className="text-[#4f80b9] dark:text-[#7da7d9]">Giải thích / Ghi chú:</strong>{' '}
+                      {q.explanation}
+                    </div>
+                  )}
                 </div>
               );
             })

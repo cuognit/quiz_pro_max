@@ -1,11 +1,11 @@
 import { ActiveExamSession, ExamResult, MistakeRecord } from '../types/quiz';
 
 const STORAGE_KEYS = {
-  ACTIVE_SESSION: 'sqa_active_exam_session_v1',
-  HISTORY: 'sqa_exam_history_v1',
-  MISTAKES: 'sqa_mistakes_v1',
-  BOOKMARKS: 'sqa_bookmarks_v1',
-  SETTINGS: 'sqa_settings_v1'
+  ACTIVE_SESSION: 'bigdata_active_exam_session_v1',
+  HISTORY: 'bigdata_exam_history_v1',
+  MISTAKES: 'bigdata_mistakes_v1',
+  BOOKMARKS: 'bigdata_bookmarks_v1',
+  SETTINGS: 'bigdata_settings_v1'
 };
 
 // ================= Active Session (Lưu bài dở dang) =================
@@ -103,6 +103,7 @@ export function recordMistakesFromResult(result: ExamResult): void {
     const mistakes = getMistakeRecords();
 
     for (const d of result.details) {
+      if (d.isDiscussion) continue;
       if (!d.isCorrect && !d.isSkipped) {
         const qId = d.question.id;
         const existing = mistakes[qId];

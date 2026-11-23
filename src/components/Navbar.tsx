@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems: { id: TabType; label: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[] = [
     {
       id: 'exam',
-      label: 'Luyện Đề Chuẩn',
+      label: 'Tạo Đề Thi',
       icon: <FileText className="w-4 h-4" />
     },
     {
@@ -127,14 +127,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-lg tracking-tight text-[#152230] dark:text-[#f4f8fd] group-hover:text-[#4f80b9] transition-colors">
-                  SQA Master Pro
+                  Big Data Pro
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fff7cc] text-[#152230] border border-[#fef08a] uppercase tracking-wider hidden sm:inline-block">
-                  KTPM
+                  319 CÂU
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-                Hệ thống ôn luyện Đảm bảo Chất lượng Phần mềm
+                Hệ thống ôn luyện Trắc nghiệm Dữ liệu lớn (Big Data)
               </p>
             </div>
           </div>

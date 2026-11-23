@@ -69,7 +69,7 @@ export const StickerSquadOverlay: React.FC = () => {
           <span>Bứt Phá Về Đích</span>
         </motion.div>
 
-        {/* Floating Sticker: 🏆 Thủ Khoa SQA */}
+        {/* Floating Sticker: 🏆 Thủ Khoa Big Data */}
         <motion.div
           animate={{
             y: [12, -12, 12],
@@ -80,7 +80,7 @@ export const StickerSquadOverlay: React.FC = () => {
           className="absolute bottom-[12%] right-[5%] hidden lg:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-purple-600/85 text-white text-xs font-bold shadow-xl border border-white/20 backdrop-blur-xs select-none"
         >
           <span className="text-xl">🏆</span>
-          <span>Thủ Khoa SQA</span>
+          <span>Thủ Khoa Big Data</span>
         </motion.div>
 
         {/* Drifting Emoticons in background */}
@@ -299,7 +299,7 @@ export const StickerSquadOverlay: React.FC = () => {
         <motion.div
           onClick={e => {
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            triggerQuote('Shiba: Quyết chiến quyết thắng qua môn SQA! 🐕🔥', rect.left + 35, rect.top);
+            triggerQuote('Shiba: Quyết chiến quyết thắng qua môn Big Data! 🐕🔥', rect.left + 35, rect.top);
           }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.94 }}

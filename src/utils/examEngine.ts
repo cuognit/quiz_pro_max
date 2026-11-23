@@ -4,27 +4,42 @@ import {
   ActiveExamSession,
   ExamResult,
   BreakdownStat,
-  QuestionResultDetail
+  QuestionResultDetail,
+  UserAnswerValue,
+  CdrType
 } from '../types/quiz';
 
-/**
- * Standard Exam Blueprint according to syllabus:
- * Total: 50 questions
- * - Group 1: 10 questions (DỄ, CĐR 1.1)
- * - Group 2: 15 questions (TRUNG BÌNH, CĐR 1.1)
- * - Group 3: 3 questions (KHÓ, CĐR 1.1)
- * - Group 4: 5 questions (DỄ, CĐR 2.1)
- * - Group 5: 12 questions (TRUNG BÌNH, CĐR 2.1)
- * - Group 6: 5 questions (KHÓ, CĐR 2.1)
- */
-export const STANDARD_EXAM_BLUEPRINT = [
-  { group: 1, count: 10, name: 'Group 1 (DỄ, CĐR 1.1)' },
-  { group: 2, count: 15, name: 'Group 2 (TRUNG BÌNH, CĐR 1.1)' },
-  { group: 3, count: 3, name: 'Group 3 (KHÓ, CĐR 1.1)' },
-  { group: 4, count: 5, name: 'Group 4 (DỄ, CĐR 2.1)' },
-  { group: 5, count: 12, name: 'Group 5 (TRUNG BÌNH, CĐR 2.1)' },
-  { group: 6, count: 5, name: 'Group 6 (KHÓ, CĐR 2.1)' }
-];
+export const ALL_BATCH_GROUPS = [1, 2, 3, 4, 5] as const;
+
+export const BATCH_INFO: Record<number, { shortName: string; name: string; desc: string }> = {
+  1: {
+    shortName: 'Batch 1',
+    name: 'Tổng quan & 6V Big Data',
+    desc: 'Nguồn dữ liệu, 6V, 5P Data Science, HDFS, MapReduce, Spark cơ bản'
+  },
+  2: {
+    shortName: 'Batch 2',
+    name: 'NoSQL, ML & Hadoop/Spark',
+    desc: 'CAP, NoSQL (MongoDB, Redis, Cassandra), Machine Learning, đơn vị dữ liệu'
+  },
+  3: {
+    shortName: 'Batch 3',
+    name: 'Stream, ACID/BASE & Data Lake',
+    desc: 'Batch vs Stream, ACID, BASE, CAP, Schema on Read/Write, Data Lake/Warehouse'
+  },
+  4: {
+    shortName: 'Batch 4',
+    name: 'SQL, Graph, ETL & Data Eng',
+    desc: 'SQL, Graph DB (Neo4j), Spark Components, Lambda Architecture, ETL'
+  },
+  5: {
+    shortName: 'Batch 5',
+    name: 'Thực hành Tình huống & Truy vấn',
+    desc: 'Tình huống thực tế & code pandas, PySpark, MySQL, MongoDB, Neo4j, Redis, Solr, Splunk, Delta'
+  }
+};
+
+export const ALL_CDRS: CdrType[] = ['CĐR 1.1', 'CĐR 2.1', 'CĐR 3.1', 'Thực hành'];
 
 /**
  * Shuffle array randomly using Fisher-Yates
@@ -39,19 +54,112 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * Generates an official 50-question standard exam adhering to the blueprint
+ * Normalize correct option IDs for a question
  */
-export function generateStandardExam(allQuestions: Question[], shuffle = true): Question[] {
-  const selected: Question[] = [];
+export function getCorrectOptions(q: Question): number[] {
+  if (q.isDiscussion) return [];
+  if (Array.isArray(q.correctOptions) && q.correctOptions.length > 0) {
+    return [...new Set(q.correctOptions)].sort((a, b) => a - b);
+  }
+  return q.correctOption > 0 ? [q.correctOption] : [];
+}
 
-  for (const item of STANDARD_EXAM_BLUEPRINT) {
-    const groupQuestions = allQuestions.filter(q => q.group === item.group);
-    const randomized = shuffle ? shuffleArray(groupQuestions) : groupQuestions;
-    const picked = randomized.slice(0, item.count);
-    selected.push(...picked);
+/**
+ * Normalize user answer (single number or array of numbers) to sorted unique number[]
+ */
+export function normalizeUserAnswer(val: UserAnswerValue | null | undefined): number[] {
+  if (val === null || val === undefined) return [];
+  if (Array.isArray(val)) {
+    return [...new Set(val.filter(n => typeof n === 'number' && n > 0))].sort((a, b) => a - b);
+  }
+  return typeof val === 'number' && val > 0 ? [val] : [];
+}
+
+/**
+ * Check if a question has been answered by the user
+ */
+export function isQuestionAnswered(val: UserAnswerValue | null | undefined): boolean {
+  return normalizeUserAnswer(val).length > 0;
+}
+
+/**
+ * Evaluate a user's answer for a question (supports single-choice, multi-select partial credit, and discussion questions)
+ */
+export function evaluateQuestionAnswer(
+  q: Question,
+  rawAnswer: UserAnswerValue | null | undefined
+): {
+  userAnswersList: number[];
+  correctAnswersList: number[];
+  scoreRatio: number;
+  isCorrect: boolean;
+  isPartial: boolean;
+  isSkipped: boolean;
+  isDiscussion: boolean;
+} {
+  const userAnswersList = normalizeUserAnswer(rawAnswer);
+  const correctAnswersList = getCorrectOptions(q);
+  const isSkipped = userAnswersList.length === 0;
+
+  if (q.isDiscussion || correctAnswersList.length === 0) {
+    return {
+      userAnswersList,
+      correctAnswersList: [],
+      scoreRatio: 0,
+      isCorrect: false,
+      isPartial: false,
+      isSkipped,
+      isDiscussion: true
+    };
   }
 
-  return shuffle ? shuffleArray(selected) : selected;
+  if (isSkipped) {
+    return {
+      userAnswersList,
+      correctAnswersList,
+      scoreRatio: 0,
+      isCorrect: false,
+      isPartial: false,
+      isSkipped: true,
+      isDiscussion: false
+    };
+  }
+
+  // Single choice
+  if (correctAnswersList.length === 1 && !q.isMultiSelect) {
+    const isExact = userAnswersList.length === 1 && userAnswersList[0] === correctAnswersList[0];
+    return {
+      userAnswersList,
+      correctAnswersList,
+      scoreRatio: isExact ? 1 : 0,
+      isCorrect: isExact,
+      isPartial: false,
+      isSkipped: false,
+      isDiscussion: false
+    };
+  }
+
+  // Multi-select with fair partial credit:
+  // scoreRatio = max(0, (correctSelected - wrongSelected) / totalCorrect)
+  const correctSet = new Set(correctAnswersList);
+  const correctSelected = userAnswersList.filter(a => correctSet.has(a)).length;
+  const wrongSelected = userAnswersList.filter(a => !correctSet.has(a)).length;
+
+  const isExact = correctSelected === correctAnswersList.length && wrongSelected === 0;
+  const rawRatio = isExact
+    ? 1
+    : Math.max(0, (correctSelected - wrongSelected) / correctAnswersList.length);
+  const scoreRatio = Number(rawRatio.toFixed(2));
+
+  return {
+    userAnswersList,
+    correctAnswersList,
+    scoreRatio,
+    isCorrect: isExact,
+    isPartial: !isExact && scoreRatio > 0,
+    isSkipped: false,
+    isDiscussion: false
+  };
 }
 
 /**
@@ -84,7 +192,7 @@ export function generateCustomExam(allQuestions: Question[], config: ExamConfig)
 }
 
 /**
- * Calculates complete exam result, scores, and categorical breakdowns
+ * Calculates complete exam result, scores (with partial credit & excluding discussion questions), and categorical breakdowns
  */
 export function calculateExamResult(
   session: ActiveExamSession,
@@ -92,9 +200,13 @@ export function calculateExamResult(
 ): ExamResult {
   const { questions, userAnswers, totalDurationSeconds, remainingSeconds, config } = session;
 
+  let gradedQuestions = 0;
+  let discussionCount = 0;
   let correctCount = 0;
+  let partialCount = 0;
   let incorrectCount = 0;
   let skippedCount = 0;
+  let earnedPoints = 0;
 
   const cdrMap: Record<string, { total: number; correct: number }> = {};
   const diffMap: Record<string, { total: number; correct: number }> = {};
@@ -104,53 +216,67 @@ export function calculateExamResult(
   const details: QuestionResultDetail[] = [];
 
   for (const q of questions) {
-    const userAns = userAnswers[q.id] ?? null;
-    const isCorrect = userAns === q.correctOption;
-    const isSkipped = userAns === null;
+    const rawAns = userAnswers[q.id] ?? null;
+    const evaluation = evaluateQuestionAnswer(q, rawAns);
 
-    if (isCorrect) {
-      correctCount++;
-    } else if (isSkipped) {
-      skippedCount++;
+    if (evaluation.isDiscussion) {
+      discussionCount++;
     } else {
-      incorrectCount++;
+      gradedQuestions++;
+      earnedPoints += evaluation.scoreRatio;
+
+      if (evaluation.isCorrect) {
+        correctCount++;
+      } else if (evaluation.isPartial) {
+        partialCount++;
+      } else if (evaluation.isSkipped) {
+        skippedCount++;
+      } else {
+        incorrectCount++;
+      }
+
+      // Breakdown maps (only count graded questions)
+      if (!cdrMap[q.cdr]) cdrMap[q.cdr] = { total: 0, correct: 0 };
+      cdrMap[q.cdr].total++;
+      cdrMap[q.cdr].correct += evaluation.scoreRatio;
+
+      if (!diffMap[q.difficulty]) diffMap[q.difficulty] = { total: 0, correct: 0 };
+      diffMap[q.difficulty].total++;
+      diffMap[q.difficulty].correct += evaluation.scoreRatio;
+
+      if (!groupMap[q.group]) groupMap[q.group] = { total: 0, correct: 0 };
+      groupMap[q.group].total++;
+      groupMap[q.group].correct += evaluation.scoreRatio;
+
+      const topic = q.topic || 'Tổng quát';
+      if (!topicMap[topic]) topicMap[topic] = { total: 0, correct: 0 };
+      topicMap[topic].total++;
+      topicMap[topic].correct += evaluation.scoreRatio;
     }
-
-    // Breakdown maps
-    if (!cdrMap[q.cdr]) cdrMap[q.cdr] = { total: 0, correct: 0 };
-    cdrMap[q.cdr].total++;
-    if (isCorrect) cdrMap[q.cdr].correct++;
-
-    if (!diffMap[q.difficulty]) diffMap[q.difficulty] = { total: 0, correct: 0 };
-    diffMap[q.difficulty].total++;
-    if (isCorrect) diffMap[q.difficulty].correct++;
-
-    if (!groupMap[q.group]) groupMap[q.group] = { total: 0, correct: 0 };
-    groupMap[q.group].total++;
-    if (isCorrect) groupMap[q.group].correct++;
-
-    const topic = q.topic || 'Tổng quát';
-    if (!topicMap[topic]) topicMap[topic] = { total: 0, correct: 0 };
-    topicMap[topic].total++;
-    if (isCorrect) topicMap[topic].correct++;
 
     details.push({
       question: q,
-      userAnswer: userAns,
+      userAnswer: rawAns,
+      userAnswersList: evaluation.userAnswersList,
       correctAnswer: q.correctOption,
-      isCorrect,
-      isSkipped
+      correctAnswersList: evaluation.correctAnswersList,
+      scoreRatio: evaluation.scoreRatio,
+      isCorrect: evaluation.isCorrect,
+      isPartial: evaluation.isPartial,
+      isSkipped: evaluation.isSkipped,
+      isDiscussion: evaluation.isDiscussion
     });
   }
 
   const totalQuestions = questions.length;
-  const score10 = totalQuestions > 0 ? Number(((correctCount / totalQuestions) * 10).toFixed(1)) : 0;
-  const percentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+  const roundedEarned = Number(earnedPoints.toFixed(2));
+  const score10 = gradedQuestions > 0 ? Number(((earnedPoints / gradedQuestions) * 10).toFixed(1)) : 0;
+  const percentage = gradedQuestions > 0 ? Math.round((earnedPoints / gradedQuestions) * 100) : 0;
   const passed = score10 >= 5.0;
 
   const toStat = (obj: { total: number; correct: number }): BreakdownStat => ({
     total: obj.total,
-    correct: obj.correct,
+    correct: Number(obj.correct.toFixed(2)),
     percentage: obj.total > 0 ? Math.round((obj.correct / obj.total) * 100) : 0
   });
 
@@ -175,15 +301,19 @@ export function calculateExamResult(
 
   return {
     id: `result_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    title: config.title || 'Bài thi trắc nghiệm SQA',
+    title: config.title || 'Bài luyện thi Big Data',
     mode: config.mode,
     completedAt: Date.now(),
     timeSpentSeconds: timeSpent,
     totalDurationSeconds,
     totalQuestions,
+    gradedQuestions,
+    discussionCount,
     correctCount,
+    partialCount,
     incorrectCount,
     skippedCount,
+    earnedPoints: roundedEarned,
     score10,
     percentage,
     passed,
@@ -228,7 +358,7 @@ export function getGradeEvaluation(score: number): {
       label: 'Xuất sắc',
       colorClass: 'text-emerald-600',
       badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      feedback: 'Kiến thức SQA của bạn rất vững vàng! Đạt chuẩn đầu ra xuất sắc.'
+      feedback: 'Kiến thức Big Data của bạn rất vững vàng! Đạt mức xuất sắc cả lý thuyết lẫn thực hành.'
     };
   }
   if (score >= 8.0) {
@@ -237,7 +367,7 @@ export function getGradeEvaluation(score: number): {
       label: 'Giỏi',
       colorClass: 'text-teal-600',
       badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
-      feedback: 'Kết quả rất tốt! Nắm vững cả lý thuyết hộp trắng, hộp đen và luồng dữ liệu.'
+      feedback: 'Kết quả rất tốt! Nắm chắc Hadoop/Spark, NoSQL, CAP/ACID và các truy vấn thực tế.'
     };
   }
   if (score >= 7.0) {
@@ -246,7 +376,7 @@ export function getGradeEvaluation(score: number): {
       label: 'Khá',
       colorClass: 'text-blue-600',
       badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
-      feedback: 'Đạt kết quả khá tốt. Hãy xem lại các câu hỏi khó về độ phức tạp chu trình và luồng dữ liệu.'
+      feedback: 'Đạt kết quả khá tốt. Hãy xem lại các câu chọn nhiều đáp án và tình huống truy vấn ở Batch 5.'
     };
   }
   if (score >= 5.0) {
@@ -255,7 +385,7 @@ export function getGradeEvaluation(score: number): {
       label: 'Đạt yêu cầu',
       colorClass: 'text-amber-600',
       badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
-      feedback: 'Bạn đã vượt qua điểm chuẩn! Nên luyện tập thêm trong "Bộ câu hỏi làm sai" để củng cố.'
+      feedback: 'Bạn đã vượt qua điểm chuẩn! Nên luyện tập thêm trong "Ôn câu làm sai" để củng cố.'
     };
   }
   return {
@@ -263,7 +393,7 @@ export function getGradeEvaluation(score: number): {
     label: 'Chưa đạt',
     colorClass: 'text-rose-600',
     badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
-    feedback: 'Chưa đạt chuẩn. Hãy làm lại bài kiểm tra và ôn tập kỹ các câu hỏi trong ngân hàng.'
+    feedback: 'Chưa đạt chuẩn. Hãy làm lại bài kiểm tra và ôn tập kỹ các câu hỏi trong ngân hàng Big Data.'
   };
 }
 
@@ -274,114 +404,87 @@ export function generateSampleHistoryData(allQuestions: Question[]): ExamResult[
   const now = Date.now();
   const dayMs = 24 * 3600 * 1000;
 
-  // Exam 1: 2 days ago (Score ~5.6 - fair performance)
-  const qSet1 = generateStandardExam(allQuestions, false);
-  const answers1: Record<string, number> = {};
-  qSet1.forEach((q, idx) => {
-    // Correct rate ~56%
-    const isRight = idx % 9 !== 0 && idx % 7 !== 0 && (q.group <= 2 ? idx % 3 !== 0 : idx % 2 === 0);
-    answers1[q.id] = isRight ? q.correctOption : (q.correctOption % 4) + 1;
+  const baseConfig = (title: string, shuffle: boolean): ExamConfig => ({
+    mode: 'custom',
+    title,
+    questionCount: 40,
+    durationMinutes: 45,
+    selectedGroups: [1, 2, 3, 4, 5],
+    selectedCdrs: ['CĐR 1.1', 'CĐR 2.1', 'CĐR 3.1', 'Thực hành'],
+    selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
+    shuffleQuestions: shuffle,
+    shuffleOptions: false,
+    immediateFeedback: false
   });
+
+  const buildAnswers = (qSet: Question[], rateFn: (q: Question, idx: number) => boolean) => {
+    const answers: Record<string, UserAnswerValue> = {};
+    qSet.forEach((q, idx) => {
+      if (q.isDiscussion) return;
+      const correctList = getCorrectOptions(q);
+      const isRight = rateFn(q, idx);
+      if (q.isMultiSelect) {
+        answers[q.id] = isRight ? correctList : [correctList[0]];
+      } else {
+        answers[q.id] = isRight ? correctList[0] : (correctList[0] % 4) + 1;
+      }
+    });
+    return answers;
+  };
+
+  const qSet1 = generateCustomExam(allQuestions, baseConfig('Đề Tự Chọn Big Data #1', false));
   const session1: ActiveExamSession = {
     id: 'sample_session_1',
-    config: {
-      mode: 'standard',
-      title: 'Đề Thi Chuẩn SQA #1',
-      questionCount: 50,
-      durationMinutes: 60,
-      selectedGroups: [1, 2, 3, 4, 5, 6],
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
-      shuffleQuestions: false,
-      shuffleOptions: false,
-      immediateFeedback: false
-    },
+    config: baseConfig('Đề Tự Chọn Big Data #1', false),
     questions: qSet1,
-    userAnswers: answers1,
+    userAnswers: buildAnswers(qSet1, (q, idx) => idx % 3 !== 0 && (q.group <= 2 || idx % 2 === 0)),
     flaggedQuestions: {},
-    startedAt: now - 2 * dayMs - 3400 * 1000,
-    totalDurationSeconds: 3600,
-    remainingSeconds: 400,
+    startedAt: now - 2 * dayMs - 2400 * 1000,
+    totalDurationSeconds: 2700,
+    remainingSeconds: 300,
     lastActiveAt: now - 2 * dayMs,
-    currentQuestionIndex: 49,
+    currentQuestionIndex: qSet1.length - 1,
     isCompleted: true
   };
-  const res1 = calculateExamResult(session1, 3200);
+  const res1 = calculateExamResult(session1, 2400);
   res1.id = 'sample_res_1';
   res1.completedAt = now - 2 * dayMs;
 
-  // Exam 2: Yesterday (Score ~7.4 - good improvement)
-  const qSet2 = generateStandardExam(allQuestions, true);
-  const answers2: Record<string, number> = {};
-  qSet2.forEach((q, idx) => {
-    // Correct rate ~74%
-    const isRight = q.difficulty === 'DỄ' ? true : q.difficulty === 'TRUNG BÌNH' ? idx % 4 !== 0 : idx % 2 === 0;
-    answers2[q.id] = isRight ? q.correctOption : (q.correctOption % 4) + 1;
-  });
+  const qSet2 = generateCustomExam(allQuestions, baseConfig('Đề Tự Chọn Big Data #2', true));
   const session2: ActiveExamSession = {
     id: 'sample_session_2',
-    config: {
-      mode: 'standard',
-      title: 'Đề Thi Chuẩn SQA (Lần 2)',
-      questionCount: 50,
-      durationMinutes: 60,
-      selectedGroups: [1, 2, 3, 4, 5, 6],
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
-      shuffleQuestions: true,
-      shuffleOptions: false,
-      immediateFeedback: false
-    },
+    config: baseConfig('Đề Tự Chọn Big Data #2', true),
     questions: qSet2,
-    userAnswers: answers2,
+    userAnswers: buildAnswers(qSet2, (_q, idx) => idx % 4 !== 0),
     flaggedQuestions: {},
-    startedAt: now - 1 * dayMs - 2800 * 1000,
-    totalDurationSeconds: 3600,
-    remainingSeconds: 800,
+    startedAt: now - 1 * dayMs - 2100 * 1000,
+    totalDurationSeconds: 2700,
+    remainingSeconds: 600,
     lastActiveAt: now - 1 * dayMs,
-    currentQuestionIndex: 49,
+    currentQuestionIndex: qSet2.length - 1,
     isCompleted: true
   };
-  const res2 = calculateExamResult(session2, 2800);
+  const res2 = calculateExamResult(session2, 2100);
   res2.id = 'sample_res_2';
   res2.completedAt = now - 1 * dayMs;
 
-  // Exam 3: Earlier today (Score ~8.8 - advanced mastery)
-  const qSet3 = generateStandardExam(allQuestions, true);
-  const answers3: Record<string, number> = {};
-  qSet3.forEach((q, idx) => {
-    // Correct rate ~88%
-    const isRight = idx % 8 !== 0;
-    answers3[q.id] = isRight ? q.correctOption : (q.correctOption % 4) + 1;
-  });
+  const qSet3 = generateCustomExam(allQuestions, baseConfig('Đề Tự Chọn Big Data #3', true));
   const session3: ActiveExamSession = {
     id: 'sample_session_3',
-    config: {
-      mode: 'standard',
-      title: 'Đề Thi Chuẩn SQA (Lần 3)',
-      questionCount: 50,
-      durationMinutes: 60,
-      selectedGroups: [1, 2, 3, 4, 5, 6],
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
-      shuffleQuestions: true,
-      shuffleOptions: false,
-      immediateFeedback: false
-    },
+    config: baseConfig('Đề Tự Chọn Big Data #3', true),
     questions: qSet3,
-    userAnswers: answers3,
+    userAnswers: buildAnswers(qSet3, (_q, idx) => idx % 8 !== 0),
     flaggedQuestions: {},
     startedAt: now - 3 * 3600 * 1000,
-    totalDurationSeconds: 3600,
-    remainingSeconds: 1200,
+    totalDurationSeconds: 2700,
+    remainingSeconds: 900,
     lastActiveAt: now - 2 * 3600 * 1000,
-    currentQuestionIndex: 49,
+    currentQuestionIndex: qSet3.length - 1,
     isCompleted: true
   };
-  const res3 = calculateExamResult(session3, 2400);
+  const res3 = calculateExamResult(session3, 1800);
   res3.id = 'sample_res_3';
   res3.completedAt = now - 2 * 3600 * 1000;
 
-  // Return sorted descending (newest first for standard storage history)
   return [res3, res2, res1];
 }

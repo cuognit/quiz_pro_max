@@ -49,50 +49,42 @@ const GROUP_ROWS: CategoryRow[] = [
   {
     id: 'group_1',
     key: 1,
-    label: 'Group 1: Nhận biết & Khái niệm',
-    subLabel: 'Lý thuyết cơ bản, thuật ngữ kiểm thử',
-    badge: 'CĐR 1.1 • DỄ',
+    label: 'Batch 1: Tổng quan & 6V Big Data',
+    subLabel: 'Nguồn dữ liệu, 6V, 5P Data Science, HDFS, MapReduce, Spark cơ bản',
+    badge: '46 câu',
     badgeColor: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
   },
   {
     id: 'group_2',
     key: 2,
-    label: 'Group 2: Kỹ thuật kiểm thử & Phân loại',
-    subLabel: 'Kiểm thử hộp đen, phân hoạch tương đương, biên',
-    badge: 'CĐR 1.1 • TB',
+    label: 'Batch 2: NoSQL, ML & Hadoop/Spark',
+    subLabel: 'CAP, NoSQL (MongoDB, Redis, Cassandra), Machine Learning, đơn vị',
+    badge: '52 câu',
     badgeColor: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
   },
   {
     id: 'group_3',
     key: 3,
-    label: 'Group 3: Vận dụng & Độ phức tạp',
-    subLabel: 'Độ phức tạp Cyclomatic, bao phủ nhánh, đường',
-    badge: 'CĐR 1.1 • KHÓ',
-    badgeColor: 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border-[#f5c6cb] dark:border-[#522b34]'
+    label: 'Batch 3: Stream, ACID/BASE & Data Lake',
+    subLabel: 'Batch vs Stream, ACID, BASE, CAP, Schema on Read/Write, Data Lake',
+    badge: '45 câu',
+    badgeColor: 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
   },
   {
     id: 'group_4',
     key: 4,
-    label: 'Group 4: Công cụ & Thuật ngữ SQA',
-    subLabel: 'Sơ đồ ký hiệu, khung kiểm thử đơn vị, tiêu chuẩn',
-    badge: 'CĐR 2.1 • DỄ',
-    badgeColor: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+    label: 'Batch 4: SQL, Graph, ETL & Data Eng',
+    subLabel: 'SQL, Graph DB (Neo4j), Spark Components, Lambda Architecture, ETL',
+    badge: '60 câu',
+    badgeColor: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
   },
   {
     id: 'group_5',
     key: 5,
-    label: 'Group 5: Luồng điều khiển & Bao phủ',
-    subLabel: 'CFG, bảng quyết định, thuật toán kiểm thử hộp trắng',
-    badge: 'CĐR 2.1 • TB',
-    badgeColor: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-  },
-  {
-    id: 'group_6',
-    key: 6,
-    label: 'Group 6: Luồng dữ liệu, DFG & Nâng cao',
-    subLabel: 'DFG, def-use pair, bất thường luồng dữ liệu, state',
-    badge: 'CĐR 2.1 • KHÓ',
-    badgeColor: 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border-[#f5c6cb] dark:border-[#522b34]'
+    label: 'Batch 5: Thực hành Tình huống & Truy vấn',
+    subLabel: 'pandas, PySpark, MySQL, MongoDB, Neo4j, Redis, Solr, Splunk, Delta',
+    badge: '116 câu',
+    badgeColor: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
   }
 ];
 
@@ -100,18 +92,34 @@ const CDR_ROWS: CategoryRow[] = [
   {
     id: 'cdr_1_1',
     key: 'CĐR 1.1',
-    label: 'CĐR 1.1: Lý Thuyết & Kỹ Thuật Cơ Sở',
-    subLabel: 'Kiểm thử hộp đen, kiểm thử tĩnh, mô hình chất lượng',
-    badge: '28 câu / đề chuẩn (5.6đ)',
+    label: 'CĐR 1.1: Khái niệm & Kiến thức Nền tảng',
+    subLabel: 'Nguồn dữ liệu, 6V, 5P Data Science, định dạng dữ liệu',
+    badge: '56 câu',
     badgeColor: 'bg-[#e6f1fc] dark:bg-[#152230] text-[#4f80b9] dark:text-[#7da7d9] border-[#d0e4f7] dark:border-[#2e4359]'
   },
   {
     id: 'cdr_2_1',
     key: 'CĐR 2.1',
-    label: 'CĐR 2.1: Thực Hành Kỹ Thuật & Công Cụ',
-    subLabel: 'Kiểm thử hộp trắng, CFG, DFG, bao phủ dòng lệnh/nhánh',
-    badge: '22 câu / đề chuẩn (4.4đ)',
+    label: 'CĐR 2.1: Kiến trúc Lưu trữ & Xử lý',
+    subLabel: 'NoSQL, ACID/BASE/CAP, Batch/Stream, Data Lake & Warehouse',
+    badge: '49 câu',
     badgeColor: 'bg-[#e6f1fc] dark:bg-[#152230] text-[#4f80b9] dark:text-[#7da7d9] border-[#d0e4f7] dark:border-[#2e4359]'
+  },
+  {
+    id: 'cdr_3_1',
+    key: 'CĐR 3.1',
+    label: 'CĐR 3.1: Hệ phân tán, Spark & ML',
+    subLabel: 'HDFS, MapReduce, Spark RDD, Graph, Machine Learning',
+    badge: '37 câu',
+    badgeColor: 'bg-[#e6f1fc] dark:bg-[#152230] text-[#4f80b9] dark:text-[#7da7d9] border-[#d0e4f7] dark:border-[#2e4359]'
+  },
+  {
+    id: 'cdr_th',
+    key: 'Thực hành',
+    label: 'Thực hành: Truy vấn & Tình huống thực tế',
+    subLabel: 'Batch 4 & Batch 5 (SQL, MongoDB, Neo4j, Redis, Spark, pandas, Splunk)',
+    badge: '177 câu',
+    badgeColor: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
   }
 ];
 

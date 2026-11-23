@@ -173,13 +173,12 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
             onChange={e => setSelectedGroup(e.target.value === 'all' ? 'all' : Number(e.target.value))}
             className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4f80b9]"
           >
-            <option value="all">Tất cả nhóm</option>
-            <option value="1">Group 1 (Dễ - CĐR 1.1)</option>
-            <option value="2">Group 2 (TB - CĐR 1.1)</option>
-            <option value="3">Group 3 (Khó - CĐR 1.1)</option>
-            <option value="4">Group 4 (Dễ - CĐR 2.1)</option>
-            <option value="5">Group 5 (TB - CĐR 2.1)</option>
-            <option value="6">Group 6 (Khó - CĐR 2.1)</option>
+            <option value="all">Tất cả Batch</option>
+            <option value="1">Batch 1 · Tổng quan & 6V</option>
+            <option value="2">Batch 2 · NoSQL, ML & Spark</option>
+            <option value="3">Batch 3 · Stream, ACID/BASE & CAP</option>
+            <option value="4">Batch 4 · SQL, Graph & ETL</option>
+            <option value="5">Batch 5 · Thực hành & Truy vấn</option>
           </select>
 
           <div className="relative flex-1 md:w-64">
@@ -215,7 +214,7 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[#4f80b9] hover:bg-[#4372a7] text-white shadow-xs transition-colors"
             >
               <BookOpen className="w-4 h-4" />
-              <span>Khám phá ngân hàng 300 câu</span>
+              <span>Khám phá ngân hàng {questions.length} câu</span>
             </button>
           </div>
         ) : (
@@ -297,7 +296,8 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
                 {isExpanded && (
                   <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     {q.options.map(option => {
-                      const isCorrect = option.id === q.correctOption;
+                      const correctList = q.correctOptions?.length ? q.correctOptions : q.correctOption > 0 ? [q.correctOption] : [];
+                      const isCorrect = correctList.includes(option.id);
                       return (
                         <div
                           key={option.id}
@@ -316,7 +316,7 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
                           >
                             {option.label}
                           </span>
-                          <span className="flex-1 pt-0.5">{option.text}</span>
+                          <span className="flex-1 pt-0.5 whitespace-pre-line">{option.text}</span>
                           {isCorrect && (
                             <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
                               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -326,6 +326,11 @@ export const MistakesView: React.FC<MistakesViewProps> = ({
                         </div>
                       );
                     })}
+                    {q.explanation && (
+                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs text-slate-700 dark:text-slate-300">
+                        <strong className="text-[#4f80b9] dark:text-[#7da7d9]">Giải thích:</strong> {q.explanation}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

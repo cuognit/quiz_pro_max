@@ -17,8 +17,14 @@ import {
   LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ActiveExamSession, Question } from '../types/quiz';
-import { formatTime } from '../utils/examEngine';
+import { ActiveExamSession, Question, UserAnswerValue } from '../types/quiz';
+import {
+  formatTime,
+  evaluateQuestionAnswer,
+  getCorrectOptions,
+  isQuestionAnswered,
+  normalizeUserAnswer
+} from '../utils/examEngine';
 import { saveActiveSession } from '../utils/storage';
 import { FormattedQuestionText } from './FormattedQuestionText';
 
@@ -41,16 +47,19 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const [showExitModal, setShowExitModal] = useState<boolean>(false);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(session.remainingSeconds);
+  const [checkedMultiMap, setCheckedMultiMap] = useState<Record<string, boolean>>({});
 
   const sessionRef = useRef<ActiveExamSession>(session);
   sessionRef.current = session;
 
   const currentQuestion: Question | undefined = session.questions[currentIndex];
   const totalQuestions = session.questions.length;
-  const answeredCount = Object.keys(session.userAnswers).length;
+  const answeredCount = session.questions.filter(q =>
+    isQuestionAnswered(session.userAnswers[q.id])
+  ).length;
   const unansweredCount = totalQuestions - answeredCount;
   const flaggedCount = Object.values(session.flaggedQuestions).filter(Boolean).length;
-  const progressPercent = Math.round((answeredCount / totalQuestions) * 100);
+  const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
   // Timer interval
   useEffect(() => {
@@ -112,10 +121,25 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const handleSelectOption = (optionId: number) => {
     if (!currentQuestion) return;
 
-    const newAnswers = {
-      ...session.userAnswers,
-      [currentQuestion.id]: optionId
-    };
+    const newAnswers: Record<string, UserAnswerValue> = { ...session.userAnswers };
+
+    if (currentQuestion.isMultiSelect) {
+      const currentList = normalizeUserAnswer(session.userAnswers[currentQuestion.id]);
+      const exists = currentList.includes(optionId);
+      const nextList = exists
+        ? currentList.filter(id => id !== optionId)
+        : [...currentList, optionId].sort((a, b) => a - b);
+
+      if (nextList.length === 0) {
+        delete newAnswers[currentQuestion.id];
+      } else {
+        newAnswers[currentQuestion.id] = nextList;
+      }
+      // Reset practice check state if user changes selection
+      setCheckedMultiMap(prev => ({ ...prev, [currentQuestion.id]: false }));
+    } else {
+      newAnswers[currentQuestion.id] = optionId;
+    }
 
     const updatedSession: ActiveExamSession = {
       ...session,
@@ -158,7 +182,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
   const handleGoToNextUnanswered = () => {
     for (let i = 0; i < totalQuestions; i++) {
       const q = session.questions[i];
-      if (session.userAnswers[q.id] === undefined) {
+      if (!isQuestionAnswered(session.userAnswers[q.id])) {
         handleGoToQuestion(i);
         return;
       }
@@ -305,6 +329,16 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                       <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
                         • {currentQuestion.groupName}
                       </span>
+                      {currentQuestion.isMultiSelect && (
+                        <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60">
+                          Chọn nhiều đáp án
+                        </span>
+                      )}
+                      {currentQuestion.isDiscussion && (
+                        <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/60">
+                          Câu thảo luận · Không tính điểm
+                        </span>
+                      )}
                     </div>
 
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
@@ -344,125 +378,216 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                     )}
 
                     {/* Options List with Hotkey Indicators */}
-                    <div className="space-y-3 pt-2">
-                      {currentQuestion.options.map((option, optIdx) => {
-                        const isSelected = session.userAnswers[currentQuestion.id] === option.id;
-                        const isPractice = session.config.immediateFeedback;
-                        const isAnswered = session.userAnswers[currentQuestion.id] !== undefined;
+                    {(() => {
+                      const selectedList = normalizeUserAnswer(session.userAnswers[currentQuestion.id]);
+                      const correctList = getCorrectOptions(currentQuestion);
+                      const isPractice = session.config.immediateFeedback;
+                      const isAnswered = selectedList.length > 0;
+                      const shouldRevealFeedback =
+                        isPractice &&
+                        isAnswered &&
+                        (!currentQuestion.isMultiSelect || checkedMultiMap[currentQuestion.id]);
+                      const evalNow = evaluateQuestionAnswer(
+                        currentQuestion,
+                        session.userAnswers[currentQuestion.id]
+                      );
 
-                        let cardStyle =
-                          'border-[#dceeff] dark:border-[#293d52] bg-white dark:bg-[#1c2c3d] hover:border-[#4f80b9] text-[#1a2837] dark:text-[#f0f6fc]';
+                      return (
+                        <>
+                          {currentQuestion.isMultiSelect && (
+                            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 -mb-2">
+                              * Câu hỏi nhiều lựa chọn — bạn có thể chọn nhiều phương án (được chấm điểm từng phần).
+                            </p>
+                          )}
+                          <div className="space-y-3 pt-2">
+                            {currentQuestion.options.map((option, optIdx) => {
+                              const isSelected = selectedList.includes(option.id);
+                              const isCorrectOpt = correctList.includes(option.id);
+                              const isMultilineCode = option.text.includes('\n');
 
-                        if (isSelected) {
-                          cardStyle =
-                            'border-2 border-[#4f80b9] bg-[#dceeff]/35 dark:bg-[#233446]/60 text-[#152230] dark:text-[#fff7cc] shadow-xs font-semibold';
-                        }
+                              let cardStyle =
+                                'border-[#dceeff] dark:border-[#293d52] bg-white dark:bg-[#1c2c3d] hover:border-[#4f80b9] text-[#1a2837] dark:text-[#f0f6fc]';
 
-                        if (isPractice && isAnswered) {
-                          if (option.id === currentQuestion.correctOption) {
-                            cardStyle =
-                              'border-2 border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs';
-                          } else if (isSelected && option.id !== currentQuestion.correctOption) {
-                            cardStyle =
-                              'border-2 border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/90 dark:bg-[#351e24]/70 text-[#8e3535] dark:text-[#f0a8a8] line-through opacity-90';
-                          }
-                        }
+                              if (isSelected) {
+                                cardStyle =
+                                  'border-2 border-[#4f80b9] bg-[#dceeff]/35 dark:bg-[#233446]/60 text-[#152230] dark:text-[#fff7cc] shadow-xs font-semibold';
+                              }
 
-                        return (
-                          <button
-                            key={option.id}
-                            onClick={() => handleSelectOption(option.id)}
-                            className={`w-full p-4 rounded-2xl border text-left flex items-start gap-4 transition-all duration-150 cursor-pointer group hover:scale-[1.006] ${cardStyle}`}
-                          >
-                            {/* Option Circle Label (A, B, C, D) */}
-                            <span
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 transition-all ${
-                                isSelected
-                                  ? 'bg-[#4f80b9] text-white shadow-xs'
-                                  : 'bg-[#dceeff]/60 dark:bg-[#152230] text-[#233446] dark:text-[#dceeff] group-hover:bg-[#4f80b9] group-hover:text-white'
-                              } ${
-                                isPractice && isAnswered && option.id === currentQuestion.correctOption
-                                  ? 'bg-emerald-600 text-white font-black'
-                                  : ''
-                              } ${
-                                isPractice && isAnswered && isSelected && option.id !== currentQuestion.correctOption
-                                  ? 'bg-[#c25e5e] text-white font-black'
-                                  : ''
+                              if (shouldRevealFeedback && !currentQuestion.isDiscussion) {
+                                if (isCorrectOpt) {
+                                  cardStyle =
+                                    'border-2 border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs';
+                                } else if (isSelected && !isCorrectOpt) {
+                                  cardStyle =
+                                    'border-2 border-[#f5c6cb] dark:border-[#522b34] bg-[#fdf2f4]/90 dark:bg-[#351e24]/70 text-[#8e3535] dark:text-[#f0a8a8] line-through opacity-90';
+                                }
+                              }
+
+                              return (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  onClick={() => handleSelectOption(option.id)}
+                                  className={`w-full p-4 rounded-2xl border text-left flex items-start gap-4 transition-all duration-150 cursor-pointer group hover:scale-[1.006] ${cardStyle}`}
+                                >
+                                  {/* Option Badge (Rounded square for multi-select, rounded-xl for single) */}
+                                  <span
+                                    className={`w-8 h-8 ${
+                                      currentQuestion.isMultiSelect ? 'rounded-lg' : 'rounded-xl'
+                                    } flex items-center justify-center font-bold text-sm shrink-0 transition-all ${
+                                      isSelected
+                                        ? 'bg-[#4f80b9] text-white shadow-xs'
+                                        : 'bg-[#dceeff]/60 dark:bg-[#152230] text-[#233446] dark:text-[#dceeff] group-hover:bg-[#4f80b9] group-hover:text-white'
+                                    } ${
+                                      shouldRevealFeedback && !currentQuestion.isDiscussion && isCorrectOpt
+                                        ? 'bg-emerald-600 text-white font-black'
+                                        : ''
+                                    } ${
+                                      shouldRevealFeedback &&
+                                      !currentQuestion.isDiscussion &&
+                                      isSelected &&
+                                      !isCorrectOpt
+                                        ? 'bg-[#c25e5e] text-white font-black'
+                                        : ''
+                                    }`}
+                                  >
+                                    {option.label}
+                                  </span>
+
+                                  {/* Option Text */}
+                                  <div
+                                    className={`flex-1 pt-1 leading-relaxed whitespace-pre-line ${
+                                      isMultilineCode
+                                        ? 'font-mono text-xs sm:text-sm'
+                                        : 'text-sm sm:text-base'
+                                    }`}
+                                  >
+                                    {option.text}
+                                  </div>
+
+                                  {/* Hotkey hint indicator & checkmark */}
+                                  <div className="flex items-center gap-2 shrink-0 pt-1">
+                                    {isSelected ? (
+                                      <CheckCircle2 className="w-5 h-5 text-[#4f80b9] dark:text-[#7da7d9]" />
+                                    ) : (
+                                      <span className="hidden sm:inline-block text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md border border-[#dceeff] dark:border-[#293d52] text-[#4f80b9] dark:text-[#7da7d9] opacity-70 group-hover:opacity-100">
+                                        {optIdx + 1}
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Practice Mode: Check button for multi-select before revealing */}
+                          {isPractice &&
+                            currentQuestion.isMultiSelect &&
+                            isAnswered &&
+                            !checkedMultiMap[currentQuestion.id] && (
+                              <div className="pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setCheckedMultiMap(prev => ({
+                                      ...prev,
+                                      [currentQuestion.id]: true
+                                    }))
+                                  }
+                                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer"
+                                >
+                                  Kiểm tra đáp án ({selectedList.map(id => String.fromCharCode(64 + id)).join(', ')})
+                                </button>
+                              </div>
+                            )}
+
+                          {/* Immediate Feedback in Practice Mode */}
+                          {shouldRevealFeedback && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className={`p-4 rounded-2xl border text-sm ${
+                                evalNow.isDiscussion
+                                  ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-400/60 text-sky-900 dark:text-sky-100 shadow-xs'
+                                  : evalNow.isCorrect
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/60 text-emerald-900 dark:text-emerald-100 shadow-xs'
+                                  : evalNow.isPartial
+                                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500/60 text-amber-900 dark:text-amber-100 shadow-xs'
+                                  : 'bg-[#fdf2f4] dark:bg-[#351e24] border-[#f5c6cb] dark:border-[#522b34] text-[#8e3535] dark:text-[#f0a8a8] shadow-xs'
                               }`}
                             >
-                              {option.label}
-                            </span>
+                              <div className="flex items-center gap-2 font-bold mb-1">
+                                {evalNow.isDiscussion ? (
+                                  <>
+                                    <Sparkles className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" />
+                                    <span>Câu hỏi thảo luận (không tính điểm khi chấm bài).</span>
+                                  </>
+                                ) : evalNow.isCorrect ? (
+                                  <>
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span>
+                                      Chính xác! Đáp án chuẩn là{' '}
+                                      {correctList.map(id => String.fromCharCode(64 + id)).join(', ')}.
+                                    </span>
+                                  </>
+                                ) : evalNow.isPartial ? (
+                                  <>
+                                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                    <span>
+                                      Đúng một phần ({Math.round(evalNow.scoreRatio * 100)}% điểm câu)! Đáp án đầy đủ là{' '}
+                                      {correctList.map(id => String.fromCharCode(64 + id)).join(', ')}.
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertTriangle className="w-5 h-5 text-[#c25e5e] dark:text-[#f0a8a8] shrink-0" />
+                                    <span>
+                                      Chưa chính xác! Đáp án chuẩn là{' '}
+                                      {correctList.map(id => String.fromCharCode(64 + id)).join(', ')}.
+                                    </span>
+                                  </>
+                                )}
+                              </div>
 
-                            {/* Option Text */}
-                            <div className="flex-1 text-sm sm:text-base pt-1 leading-relaxed">
-                              {option.text}
-                            </div>
-
-                            {/* Hotkey hint indicator & checkmark */}
-                            <div className="flex items-center gap-2 shrink-0 pt-1">
-                              {isSelected ? (
-                                <CheckCircle2 className="w-5 h-5 text-[#4f80b9] dark:text-[#7da7d9]" />
-                              ) : (
-                                <span className="hidden sm:inline-block text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md border border-[#dceeff] dark:border-[#293d52] text-[#4f80b9] dark:text-[#7da7d9] opacity-70 group-hover:opacity-100">
-                                  {optIdx + 1}
-                                </span>
+                              {currentQuestion.explanation && (
+                                <p className="text-xs sm:text-sm text-inherit mt-2 p-2.5 rounded-xl bg-white/60 dark:bg-black/20 border border-current/15">
+                                  <strong>Giải thích:</strong> {currentQuestion.explanation}
+                                </p>
                               )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
 
-                    {/* Immediate Feedback in Practice Mode */}
-                    {session.config.immediateFeedback && session.userAnswers[currentQuestion.id] !== undefined && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className={`p-4 rounded-2xl border text-sm ${
-                          session.userAnswers[currentQuestion.id] === currentQuestion.correctOption
-                            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500/60 text-emerald-900 dark:text-emerald-100 shadow-xs'
-                            : 'bg-[#fdf2f4] dark:bg-[#351e24] border-[#f5c6cb] dark:border-[#522b34] text-[#8e3535] dark:text-[#f0a8a8] shadow-xs'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 font-bold mb-1">
-                          {session.userAnswers[currentQuestion.id] === currentQuestion.correctOption ? (
-                            <>
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                              <span>Chính xác! Đáp án chuẩn là {String.fromCharCode(64 + currentQuestion.correctOption)}.</span>
-                            </>
-                          ) : (
-                            <>
-                              <AlertTriangle className="w-5 h-5 text-[#c25e5e] dark:text-[#f0a8a8]" />
-                              <span>Chưa chính xác! Đáp án chuẩn phải là {String.fromCharCode(64 + currentQuestion.correctOption)}.</span>
-                            </>
-                          )}
-                        </div>
-                        <p className="text-xs text-inherit opacity-90 mt-1">
-                          Chủ đề: <strong>{currentQuestion.topic}</strong> ({currentQuestion.groupName} - {currentQuestion.cdr}).
-                        </p>
+                              <p className="text-xs text-inherit opacity-85 mt-2">
+                                Chủ đề: <strong>{currentQuestion.topic}</strong> ({currentQuestion.groupName} - {currentQuestion.cdr}).
+                              </p>
 
-                        <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
-                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Bấm phím mũi tên hoặc nút bên dưới để sang câu kế tiếp</span>
-                          {currentIndex < totalQuestions - 1 ? (
-                            <button
-                              onClick={() => handleGoToQuestion(currentIndex + 1)}
-                              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#4f80b9] hover:bg-[#4372a7] active:bg-[#396395] text-white flex items-center gap-1 shadow-xs transition-colors"
-                            >
-                              <span>Làm tiếp câu sau</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setShowSubmitModal(true)}
-                              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 shadow-xs transition-colors"
-                            >
-                              <span>Hoàn thành & Nộp bài</span>
-                              <Send className="w-3.5 h-3.5" />
-                            </button>
+                              <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                  Bấm phím mũi tên hoặc nút bên dưới để sang câu kế tiếp
+                                </span>
+                                {currentIndex < totalQuestions - 1 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleGoToQuestion(currentIndex + 1)}
+                                    className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#4f80b9] hover:bg-[#4372a7] active:bg-[#396395] text-white flex items-center gap-1 shadow-xs transition-colors"
+                                  >
+                                    <span>Làm tiếp câu sau</span>
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowSubmitModal(true)}
+                                    className="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 shadow-xs transition-colors"
+                                  >
+                                    <span>Hoàn thành & Nộp bài</span>
+                                    <Send className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </motion.div>
                           )}
-                        </div>
-                      </motion.div>
-                    )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Card Navigation Footer */}
@@ -518,7 +643,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
                 <span><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">← / →</kbd> Chuyển câu</span>
                 <span><kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">F</kbd> Đánh dấu</span>
               </div>
-              <span>SQA Quiz Pro Max</span>
+              <span>Big Data Quiz Pro</span>
             </div>
           </div>
 
@@ -558,7 +683,7 @@ export const ActiveExamView: React.FC<ActiveExamViewProps> = ({
               {/* Matrix Grid */}
               <div className="grid grid-cols-5 gap-2 max-h-[52vh] overflow-y-auto p-2.5 rounded-2xl bg-slate-50/60 dark:bg-[#152230]/60 border border-slate-100 dark:border-[#293d52] scrollbar-thin">
                 {session.questions.map((q, idx) => {
-                  const isAnswered = session.userAnswers[q.id] !== undefined;
+                  const isAnswered = isQuestionAnswered(session.userAnswers[q.id]);
                   const isFlagged = session.flaggedQuestions[q.id];
                   const isCurrent = idx === currentIndex;
 

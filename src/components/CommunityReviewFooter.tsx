@@ -474,7 +474,7 @@ export const CommunityReviewFooter: React.FC<CommunityReviewFooterProps> = ({
           <div className="flex items-center gap-2">
             <Award className="w-4 h-4 text-[#4f80b9]" />
             <span>
-              Hệ thống Luyện thi Trắc nghiệm SQA Quiz Pro · Đảm bảo chất lượng phần mềm
+              Hệ thống Luyện thi Trắc nghiệm Big Data Quiz Pro · Dữ liệu lớn (5 Batch)
             </span>
           </div>
           <div className="flex items-center gap-2 tabular-nums">

@@ -1,5 +1,4 @@
-import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence, type Variants } from 'motion/react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Play,
   Clock,
@@ -7,138 +6,114 @@ import {
   Layers,
   Sparkles,
   Zap,
-  Flame,
   Target,
   Shuffle,
   Eye,
-  Award,
   Check,
-  BookOpen,
   ArrowRight,
-  TrendingUp,
-  ShieldCheck
+  Code2,
+  BookOpen,
+  Sliders,
+  CheckSquare
 } from 'lucide-react';
-import { ExamConfig, Question } from '../types/quiz';
+import { CdrType, Difficulty, ExamConfig, Question } from '../types/quiz';
+import { ALL_BATCH_GROUPS, ALL_CDRS, BATCH_INFO } from '../utils/examEngine';
 
 interface ExamSetupViewProps {
   questions: Question[];
   onStartExam: (config: ExamConfig) => void;
-  defaultMode?: 'standard' | 'custom' | 'practice';
 }
 
-const subTabVariants: Variants = {
-  enter: (dir: number) => ({
-    x: dir > 0 ? 30 : dir < 0 ? -30 : 0,
-    opacity: 0
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      x: { type: 'spring', stiffness: 420, damping: 32 },
-      opacity: { duration: 0.22, ease: 'easeOut' }
-    }
-  },
-  exit: (dir: number) => ({
-    x: dir > 0 ? -30 : dir < 0 ? 30 : 0,
-    opacity: 0,
-    transition: {
-      x: { duration: 0.18, ease: 'easeIn' },
-      opacity: { duration: 0.16, ease: 'easeIn' }
-    }
-  })
-};
+const ALL_DIFFICULTIES: Difficulty[] = ['DỄ', 'TRUNG BÌNH', 'KHÓ'];
 
 export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
   questions,
-  onStartExam,
-  defaultMode = 'standard'
+  onStartExam
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'standard' | 'custom'>('standard');
-  const [subTabDirection, setSubTabDirection] = useState<number>(0);
-  const customSectionRef = useRef<HTMLDivElement>(null);
-
-  const handleSubTabChange = (newSubTab: 'standard' | 'custom') => {
-    if (newSubTab === activeSubTab) return;
-    setSubTabDirection(newSubTab === 'custom' ? 1 : -1);
-    setActiveSubTab(newSubTab);
-  };
-
-  const handleScrollToCustom = () => {
-    setSubTabDirection(1);
-    setActiveSubTab('custom');
-    setTimeout(() => {
-      customSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
-  };
+  const configSectionRef = useRef<HTMLDivElement>(null);
 
   // Custom configuration state
   const [questionCount, setQuestionCount] = useState<number>(30);
   const [durationMinutes, setDurationMinutes] = useState<number>(30);
-  const [selectedGroups, setSelectedGroups] = useState<number[]>([1, 2, 3, 4, 5, 6]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<('DỄ' | 'TRUNG BÌNH' | 'KHÓ')[]>([
-    'DỄ',
-    'TRUNG BÌNH',
-    'KHÓ'
-  ]);
-  const [selectedCdrs, setSelectedCdrs] = useState<('CĐR 1.1' | 'CĐR 2.1')[]>([
-    'CĐR 1.1',
-    'CĐR 2.1'
+  const [selectedGroups, setSelectedGroups] = useState<number[]>([...ALL_BATCH_GROUPS]);
+  const [selectedCdrs, setSelectedCdrs] = useState<CdrType[]>([...ALL_CDRS]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<Difficulty[]>([
+    ...ALL_DIFFICULTIES
   ]);
   const [shuffleQuestions, setShuffleQuestions] = useState<boolean>(true);
   const [immediateFeedback, setImmediateFeedback] = useState<boolean>(false);
 
-  // Group info stats
-  const groupStats = [1, 2, 3, 4, 5, 6].map(g => {
-    const list = questions.filter(q => q.group === g);
-    const cdr = g <= 3 ? 'CĐR 1.1' : 'CĐR 2.1';
-    const diff = g === 1 || g === 4 ? 'DỄ' : g === 2 || g === 5 ? 'TRUNG BÌNH' : 'KHÓ';
-    return { group: g, count: list.length, cdr, diff };
-  });
+  // Stats per Batch (1..5)
+  const batchStats = useMemo(() => {
+    return ALL_BATCH_GROUPS.map(g => {
+      const list = questions.filter(q => q.group === g);
+      const multiCount = list.filter(q => q.isMultiSelect).length;
+      const info = BATCH_INFO[g];
+      return {
+        group: g,
+        count: list.length,
+        multiCount,
+        shortName: info?.shortName || `Batch ${g}`,
+        name: info?.name || `Batch ${g}`,
+        desc: info?.desc || ''
+      };
+    });
+  }, [questions]);
+
+  // Filtered pool count matching current selections
+  const matchingPoolCount = useMemo(() => {
+    return questions.filter(q => {
+      if (selectedGroups.length > 0 && !selectedGroups.includes(q.group)) return false;
+      if (selectedCdrs.length > 0 && !selectedCdrs.includes(q.cdr)) return false;
+      if (selectedDifficulties.length > 0 && !selectedDifficulties.includes(q.difficulty)) return false;
+      return true;
+    }).length;
+  }, [questions, selectedGroups, selectedCdrs, selectedDifficulties]);
+
+  const effectiveMax = Math.max(1, matchingPoolCount || questions.length);
+  const effectiveQuestionCount = Math.min(questionCount, effectiveMax);
 
   const toggleGroup = (g: number) => {
-    if (selectedGroups.includes(g)) {
-      setSelectedGroups(selectedGroups.filter(item => item !== g));
-    } else {
-      setSelectedGroups([...selectedGroups, g]);
-    }
+    setSelectedGroups(prev =>
+      prev.includes(g) ? prev.filter(item => item !== g) : [...prev, g].sort((a, b) => a - b)
+    );
   };
 
-  const selectAllGroups = () => {
-    setSelectedGroups([1, 2, 3, 4, 5, 6]);
+  const toggleCdr = (cdr: CdrType) => {
+    setSelectedCdrs(prev =>
+      prev.includes(cdr) ? prev.filter(item => item !== cdr) : [...prev, cdr]
+    );
   };
 
-  const deselectAllGroups = () => {
-    setSelectedGroups([]);
-  };
-
-  const handleStartStandard = () => {
-    onStartExam({
-      mode: 'standard',
-      title: 'Đề Thi Chuẩn SQA (50 Câu - 60 Phút)',
-      questionCount: 50,
-      durationMinutes: 60,
-      selectedGroups: [1, 2, 3, 4, 5, 6],
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
-      shuffleQuestions: true,
-      shuffleOptions: false,
-      immediateFeedback: false
-    });
+  const toggleDifficulty = (diff: Difficulty) => {
+    setSelectedDifficulties(prev =>
+      prev.includes(diff) ? prev.filter(item => item !== diff) : [...prev, diff]
+    );
   };
 
   const handleStartCustom = () => {
-    const activeGroups = selectedGroups.length > 0 ? selectedGroups : [1, 2, 3, 4, 5, 6];
+    const activeGroups = selectedGroups.length > 0 ? selectedGroups : [...ALL_BATCH_GROUPS];
+    const activeCdrs = selectedCdrs.length > 0 ? selectedCdrs : [...ALL_CDRS];
+    const activeDiffs =
+      selectedDifficulties.length > 0 ? selectedDifficulties : [...ALL_DIFFICULTIES];
+
+    const batchLabel =
+      activeGroups.length === 5
+        ? 'Tổng Hợp'
+        : activeGroups.map(g => `B${g}`).join('+');
+
     onStartExam({
       mode: immediateFeedback ? 'practice' : 'custom',
       title: immediateFeedback
-        ? `Luyện Tập SQA (${questionCount} câu - Xem kết quả ngay)`
-        : `Thi Thử Tùy Chọn (${questionCount} câu - ${durationMinutes > 0 ? durationMinutes + ' phút' : 'Tự do'})`,
-      questionCount,
+        ? `Luyện Tập Big Data ${batchLabel} (${effectiveQuestionCount} câu)`
+        : `Đề Tự Chọn Big Data ${batchLabel} (${effectiveQuestionCount} câu - ${
+            durationMinutes > 0 ? `${durationMinutes} phút` : 'Tự do'
+          })`,
+      questionCount: effectiveQuestionCount,
       durationMinutes,
       selectedGroups: activeGroups,
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
+      selectedCdrs: activeCdrs,
+      selectedDifficulties: activeDiffs,
       shuffleQuestions,
       shuffleOptions: false,
       immediateFeedback
@@ -158,602 +133,447 @@ export const ExamSetupView: React.FC<ExamSetupViewProps> = ({
       questionCount: preset.count,
       durationMinutes: preset.minutes,
       selectedGroups: preset.groups,
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
+      selectedCdrs: [...ALL_CDRS],
+      selectedDifficulties: [...ALL_DIFFICULTIES],
       shuffleQuestions: true,
       shuffleOptions: false,
       immediateFeedback: preset.immediate
     });
   };
 
+  const multiSelectTotal = useMemo(
+    () => questions.filter(q => q.isMultiSelect).length,
+    [questions]
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-300">
-      {/* Modern Hero & Quick Action Dashboard */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#152230] via-[#1c2c3d] to-[#152230] text-white p-6 sm:p-10 border border-[#2e4359] shadow-2xl">
-        {/* Glow Effects */}
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6 animate-in fade-in duration-300">
+      {/* Modern Hero & Quick Presets */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#152230] via-[#1c2c3d] to-[#152230] text-white p-6 sm:p-8 border border-[#2e4359] shadow-2xl">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-[#4f80b9]/15 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 -mb-20 w-80 h-80 rounded-full bg-[#fff7cc]/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#4f80b9]/20 text-[#dceeff] border border-[#7da7d9]/30 mb-4 backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5 text-[#fff7cc]" />
-            Học phần: Đánh giá & Kiểm định chất lượng phần mềm (SQA)
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#4f80b9]/20 text-[#dceeff] border border-[#7da7d9]/30 mb-3 backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 text-[#fff7cc]" />
+              Học phần: Dữ Liệu Lớn (Big Data) · 5 Batch Chuẩn Hóa
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-2.5 leading-tight">
+              Tự Cấu Hình Đề Thi{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#dceeff] via-white to-[#fff7cc]">
+                Big Data Practice Lab
+              </span>
+            </h1>
+            <p className="text-[#dceeff]/85 text-sm sm:text-base leading-relaxed">
+              Ngân hàng trọn bộ <strong>{questions.length} câu hỏi</strong> (gồm{' '}
+              <strong>{multiSelectTotal} câu chọn nhiều đáp án</strong> chấm điểm từng phần, code
+              truy vấn SQL / Spark / MongoDB / Neo4j / Redis / Splunk và giải thích chi tiết).
+            </p>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-3 leading-tight">
-            Ôn Luyện Trắc Nghiệm <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#dceeff] via-white to-[#fff7cc]">Chuẩn Đề Thi Thật</span>
-          </h1>
-          <p className="text-[#dceeff]/85 text-sm sm:text-base leading-relaxed mb-6 max-w-2xl">
-            Ngân hàng chính thức <strong>{questions.length} câu hỏi</strong> chuẩn hoá theo ma trận đề thi 6 nhóm kiến thức, bao gồm đồ thị CFG, DFG, kiểm thử hộp trắng/hộp đen và chấm điểm tự động.
-          </p>
-
-          {/* Quick Action 1-Click Buttons */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Quick 1-Click Presets */}
+          <div className="grid grid-cols-2 gap-2.5 shrink-0 lg:w-[370px]">
             <button
-              onClick={handleStartStandard}
-              className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#4f80b9] hover:bg-[#4372a7] active:bg-[#396395] text-white font-bold text-sm sm:text-base shadow-lg shadow-[#4f80b9]/30 hover:shadow-[#4f80b9]/40 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              type="button"
+              onClick={() =>
+                launchPreset({
+                  title: 'Luyện Nhanh Big Data (15 Câu - 15 Phút)',
+                  count: 15,
+                  minutes: 15,
+                  groups: [...ALL_BATCH_GROUPS],
+                  immediate: false
+                })
+              }
+              className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-left transition-all cursor-pointer group"
             >
-              <Play className="w-4 h-4 fill-white" />
-              <span>Vào Thi Đề Chuẩn (50 Câu - 60 Phút)</span>
-              <ArrowRight className="w-4 h-4" />
+              <div className="flex items-center gap-1.5 text-[#fff7cc] text-xs font-bold">
+                <Zap className="w-3.5 h-3.5" />
+                <span>Luyện Nhanh</span>
+              </div>
+              <span className="text-xs text-[#dceeff]/85">15 câu · 15 phút</span>
             </button>
 
             <button
-              onClick={handleScrollToCustom}
-              className="inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm backdrop-blur-md border border-white/20 transition-all hover:border-[#fff7cc]/40"
+              type="button"
+              onClick={() =>
+                launchPreset({
+                  title: 'Tổng Ôn Big Data (40 Câu - 45 Phút)',
+                  count: 40,
+                  minutes: 45,
+                  groups: [...ALL_BATCH_GROUPS],
+                  immediate: false
+                })
+              }
+              className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-[#4f80b9]/40 hover:bg-[#4f80b9]/55 border border-[#7da7d9]/40 text-left transition-all cursor-pointer group"
             >
-              <Target className="w-4 h-4 text-[#fff7cc]" />
-              <span>Tùy Chỉnh Số Câu & Phút</span>
+              <div className="flex items-center gap-1.5 text-white text-xs font-bold">
+                <Target className="w-3.5 h-3.5 text-[#fff7cc]" />
+                <span>Tổng Ôn 5 Batch</span>
+              </div>
+              <span className="text-xs text-[#dceeff]/90">40 câu · 45 phút</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                launchPreset({
+                  title: 'Thực Chiến Code Batch 5 (30 Câu)',
+                  count: 30,
+                  minutes: 0,
+                  groups: [5],
+                  immediate: true
+                })
+              }
+              className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-left transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-1.5 text-emerald-300 text-xs font-bold">
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Thực Chiến Batch 5</span>
+              </div>
+              <span className="text-xs text-[#dceeff]/85">30 câu · Hiện đáp án</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                launchPreset({
+                  title: `Ôn Toàn Bộ ${questions.length} Câu Big Data`,
+                  count: questions.length,
+                  minutes: 0,
+                  groups: [...ALL_BATCH_GROUPS],
+                  immediate: true
+                })
+              }
+              className="flex flex-col items-start gap-1 p-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-left transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-1.5 text-sky-300 text-xs font-bold">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Ôn Hết Ngân Hàng</span>
+              </div>
+              <span className="text-xs text-[#dceeff]/85">{questions.length} câu · Tự do</span>
             </button>
           </div>
         </div>
-
-        {/* Quick KPI Stats Pill Bar inside Hero */}
-        <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#4f80b9]/25 text-[#dceeff] flex items-center justify-center shrink-0">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs text-[#a6c5e8]">Ngân hàng chuẩn</p>
-              <p className="text-sm sm:text-base font-bold text-white">{questions.length} Câu</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#fff7cc]/15 text-[#fff7cc] flex items-center justify-center shrink-0">
-              <Layers className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs text-[#a6c5e8]">Phân loại</p>
-              <p className="text-sm sm:text-base font-bold text-white">6 Nhóm / 2 CĐR</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs text-[#a6c5e8]">Điều kiện Đạt</p>
-              <p className="text-sm sm:text-base font-bold text-white">≥ 5.0 / 10 Điểm</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#fff7cc]/20 text-[#fff7cc] flex items-center justify-center shrink-0">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs text-[#a6c5e8]">Tiến trình</p>
-              <p className="text-sm sm:text-base font-bold text-white">Lưu Tự Động</p>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Preset Fast Actions */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" />
-            Chế Độ Luyện Nhanh (Fast Modes)
-          </h2>
-          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
-            Chọn một chế độ để bắt đầu ngay lập tức
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Preset 1: Speed Run */}
-          <div
-            onClick={() =>
-              launchPreset({
-                title: '⚡ Luyện Thi Tốc Độ (15 câu - 15 phút)',
-                count: 15,
-                minutes: 15,
-                groups: [1, 2, 4, 5],
-                immediate: false
-              })
-            }
-            className="group relative p-5 rounded-2xl bg-white dark:bg-[#1c2c3d] border border-[#dceeff] dark:border-[#2e4359] hover:border-[#fde047] dark:hover:border-[#fde047] hover:shadow-lg transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#fff7cc] text-amber-700 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Zap className="w-5 h-5 text-amber-600" />
-              </div>
-              <span className="text-xs font-bold text-amber-800 dark:text-amber-200 bg-[#fff7cc] dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-[#fde047]/60 dark:border-amber-800/60">
-                15 Phút
-              </span>
+      {/* Main Custom Exam Configurator */}
+      <div
+        ref={configSectionRef}
+        className="rounded-3xl bg-[var(--card-surface)] border border-[var(--border-subtle)] shadow-sm p-5 sm:p-7 space-y-6"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#4f80b9]/15 text-[#4f80b9] dark:text-[#7da7d9] flex items-center justify-center">
+              <Sliders className="w-5 h-5" />
             </div>
-            <h3 className="font-bold text-[#152230] dark:text-[#f4f8fd] group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
-              Luyện Tốc Độ
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-[#a6c5e8] mt-1">
-              15 câu hỏi trọng tâm dễ & vừa, tăng tốc phản xạ giải trắc nghiệm.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
-              <span>Bắt đầu ngay</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-
-          {/* Preset 2: Hard Challenges */}
-          <div
-            onClick={() =>
-              launchPreset({
-                title: '🔥 Thử Thách Câu Khó (Group 3 & Group 6 - 20 câu)',
-                count: 20,
-                minutes: 30,
-                groups: [3, 6],
-                immediate: false
-              })
-            }
-            className="group relative p-5 rounded-2xl bg-white dark:bg-[#1c2c3d] border border-[#dceeff] dark:border-[#2e4359] hover:border-[#c25e5e] dark:hover:border-[#e89292] hover:shadow-lg transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#fdf2f4] dark:bg-[#351e24] text-[#c25e5e] dark:text-[#e89292] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Flame className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-[#b04848] dark:text-[#f0a8a8] bg-[#fdf2f4] dark:bg-[#351e24] px-2 py-0.5 rounded-md border border-[#f5c6cb] dark:border-[#522b34]">
-                Mức Khó
-              </span>
-            </div>
-            <h3 className="font-bold text-[#152230] dark:text-[#f4f8fd] group-hover:text-[#c25e5e] dark:group-hover:text-[#e89292] transition-colors">
-              Chinh Phục Câu Khó
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-[#a6c5e8] mt-1">
-              Tập trung câu hỏi nhóm 3 & 6: Độ phức tạp Cyclomatic, CFG, DFG, kiểm thử đường cơ sở.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-slate-400 group-hover:text-[#c25e5e] dark:group-hover:text-[#e89292] transition-colors">
-              <span>Bắt đầu ngay</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-
-          {/* Preset 3: Practice with Explanations */}
-          <div
-            onClick={() =>
-              launchPreset({
-                title: '💡 Luyện Tập Từng Câu (Xem kết quả ngay)',
-                count: 25,
-                minutes: 0,
-                groups: [1, 2, 3, 4, 5, 6],
-                immediate: true
-              })
-            }
-            className="group relative p-5 rounded-2xl bg-white dark:bg-[#1c2c3d] border border-[#dceeff] dark:border-[#2e4359] hover:border-[#4f80b9] dark:hover:border-[#7da7d9] hover:shadow-lg transition-all duration-200 cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#e6f1fc] dark:bg-[#152230] text-[#4f80b9] dark:text-[#7da7d9] flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Eye className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-[#4f80b9] dark:text-[#7da7d9] bg-[#e6f1fc] dark:bg-[#152230] px-2 py-0.5 rounded-md border border-[#d0e4f7] dark:border-[#2e4359]">
-                Có Giải Thích
-              </span>
-            </div>
-            <h3 className="font-bold text-[#152230] dark:text-[#f4f8fd] group-hover:text-[#4f80b9] dark:group-hover:text-[#7da7d9] transition-colors">
-              Luyện Tập Kèm Giải Thích
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-[#a6c5e8] mt-1">
-              Không bấm giờ, chọn đáp án là biết đúng/sai và xem ngay giải thích cặn kẽ.
-            </p>
-            <div className="mt-4 flex items-center text-xs font-semibold text-slate-400 group-hover:text-[#4f80b9] dark:group-hover:text-[#7da7d9] transition-colors">
-              <span>Bắt đầu ngay</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs Switcher: Standard Matrix vs Custom Configurator */}
-      <div ref={customSectionRef} className="flex border-b border-[#dceeff] dark:border-[#2e4359] scroll-mt-20">
-        <button
-          onClick={() => handleSubTabChange('standard')}
-          className={`relative pb-3 px-4 text-sm font-bold flex items-center gap-2 transition-colors ${
-            activeSubTab === 'standard'
-              ? 'text-[#4f80b9] dark:text-[#7da7d9]'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          <span>Ma Trận Đề Thi Chuẩn (50 Câu)</span>
-          {activeSubTab === 'standard' && (
-            <motion.div
-              layoutId="examSubTabUnderline"
-              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#4f80b9] dark:bg-[#7da7d9] rounded-full"
-            />
-          )}
-        </button>
-
-        <button
-          onClick={() => handleSubTabChange('custom')}
-          className={`relative pb-3 px-4 text-sm font-bold flex items-center gap-2 transition-colors ${
-            activeSubTab === 'custom'
-              ? 'text-[#4f80b9] dark:text-[#7da7d9]'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Tự Cấu Hình Số Câu & Nhóm</span>
-          {activeSubTab === 'custom' && (
-            <motion.div
-              layoutId="examSubTabUnderline"
-              transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-              className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#4f80b9] dark:bg-[#7da7d9] rounded-full"
-            />
-          )}
-        </button>
-      </div>
-
-      <div className="overflow-x-clip">
-        <AnimatePresence mode="wait" custom={subTabDirection}>
-          <motion.div
-            key={activeSubTab}
-            custom={subTabDirection}
-            variants={subTabVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="w-full"
-          >
-            {activeSubTab === 'standard' ? (
-        <div className="rounded-2xl bg-white dark:bg-[#1c2c3d] p-6 sm:p-8 border border-[#dceeff] dark:border-[#2e4359] shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                Cấu Trúc Ma Trận Đề Thi Chuẩn SQA
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Tỷ lệ chuẩn phân bố theo quy chế thi kết thúc học phần
+              <h2 className="text-lg sm:text-xl font-extrabold text-[var(--text-primary)]">
+                Cấu Hình Đề Thi Theo Ý Muốn
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Chọn Batch kiến thức, CĐR, độ khó, số câu hỏi và thời gian làm bài phù hợp.
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200/60 dark:border-blue-800/60">
-                50 Câu hỏi
-              </span>
-              <span className="px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-xs font-bold border border-amber-200/60 dark:border-amber-800/60">
-                60 Phút
-              </span>
-              <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200/60 dark:border-emerald-800/60">
-                Thang điểm 10
-              </span>
-            </div>
           </div>
 
-          {/* Matrix Table */}
-          <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200/80 dark:border-slate-800">
-                <tr>
-                  <th className="py-3 px-4">Nhóm câu hỏi</th>
-                  <th className="py-3 px-4">Chuẩn đầu ra</th>
-                  <th className="py-3 px-4">Mức độ khó</th>
-                  <th className="py-3 px-4 text-center">Số câu trong đề</th>
-                  <th className="py-3 px-4 text-center">Ngân hàng có</th>
-                  <th className="py-3 px-4 text-right">Điểm số ước tính</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">Nhóm 1</td>
-                  <td className="py-3 px-4 text-[#4f80b9] dark:text-[#7da7d9] font-medium">CĐR 1.1</td>
-                  <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-md text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">DỄ</span></td>
-                  <td className="py-3 px-4 text-center font-bold text-[#4f80b9] dark:text-[#7da7d9]">10 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">49 câu</td>
-                  <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-semibold">2.0 đ</td>
-                </tr>
-                <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">Nhóm 2</td>
-                  <td className="py-3 px-4 text-[#4f80b9] dark:text-[#7da7d9] font-medium">CĐR 1.1</td>
-                  <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-md text-xs bg-[#fff7cc] dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-[#fde047] dark:border-amber-800">TRUNG BÌNH</span></td>
-                  <td className="py-3 px-4 text-center font-bold text-[#4f80b9] dark:text-[#7da7d9]">15 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">97 câu</td>
-                  <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-semibold">3.0 đ</td>
-                </tr>
-                <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">Nhóm 3</td>
-                  <td className="py-3 px-4 text-[#4f80b9] dark:text-[#7da7d9] font-medium">CĐR 1.1</td>
-                  <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-md text-xs bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]">KHÓ</span></td>
-                  <td className="py-3 px-4 text-center font-bold text-[#4f80b9] dark:text-[#7da7d9]">3 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">19 câu</td>
-                  <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-semibold">0.6 đ</td>
-                </tr>
-                <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">Nhóm 4</td>
-                  <td className="py-3 px-4 text-[#4f80b9] dark:text-[#7da7d9] font-medium">CĐR 2.1</td>
-                  <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-md text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">DỄ</span></td>
-                  <td className="py-3 px-4 text-center font-bold text-[#4f80b9] dark:text-[#7da7d9]">5 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">20 câu</td>
-                  <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-semibold">1.0 đ</td>
-                </tr>
-                <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">Nhóm 5</td>
-                  <td className="py-3 px-4 text-[#4f80b9] dark:text-[#7da7d9] font-medium">CĐR 2.1</td>
-                  <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-md text-xs bg-[#fff7cc] dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-[#fde047] dark:border-amber-800">TRUNG BÌNH</span></td>
-                  <td className="py-3 px-4 text-center font-bold text-[#4f80b9] dark:text-[#7da7d9]">12 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">74 câu</td>
-                  <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-semibold">2.4 đ</td>
-                </tr>
-                <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
-                  <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">Nhóm 6</td>
-                  <td className="py-3 px-4 text-[#4f80b9] dark:text-[#7da7d9] font-medium">CĐR 2.1</td>
-                  <td className="py-3 px-4"><span className="px-2 py-0.5 rounded-md text-xs bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]">KHÓ</span></td>
-                  <td className="py-3 px-4 text-center font-bold text-[#4f80b9] dark:text-[#7da7d9]">5 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">40 câu</td>
-                  <td className="py-3 px-4 text-right text-slate-700 dark:text-slate-300 font-semibold">1.0 đ</td>
-                </tr>
-              </tbody>
-              <tfoot className="bg-slate-50/80 dark:bg-slate-800/80 font-bold border-t border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100">
-                <tr>
-                  <td colSpan={3} className="py-3 px-4">
-                    Tổng cộng (CĐR 1.1: 28 câu = 5.6đ | CĐR 2.1: 22 câu = 4.4đ)
-                  </td>
-                  <td className="py-3 px-4 text-center text-[#4f80b9] dark:text-[#7da7d9] text-base">50 câu</td>
-                  <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400">{questions.length} câu</td>
-                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 text-base">10.0 đ</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <button
-              onClick={handleStartStandard}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-2xl bg-[#4f80b9] hover:bg-[#4372a7] active:bg-[#396395] text-white font-bold text-base shadow-lg shadow-[#4f80b9]/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <Play className="w-5 h-5 fill-white" />
-              <span>Bắt Đầu Làm Đề Chuẩn Ngay</span>
-            </button>
+          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#f4f8fd] dark:bg-[#1c2c3d] border border-[#dceeff] dark:border-[#293d52] text-xs font-bold text-[#152230] dark:text-[#dceeff] self-start sm:self-auto">
+            <Layers className="w-4 h-4 text-[#4f80b9]" />
+            <span>
+              Khả dụng: <strong className="text-[#4f80b9] dark:text-[#fff7cc]">{matchingPoolCount}</strong> / {questions.length} câu
+            </span>
           </div>
         </div>
-      ) : (
-        /* Custom Setup View */
-        <div className="rounded-2xl bg-white dark:bg-[#1c2c3d] p-6 sm:p-8 border border-[#dceeff] dark:border-[#2e4359] shadow-sm space-y-8">
-          <div>
-            <h3 className="text-xl font-bold text-[#152230] dark:text-[#f4f8fd]">
-              Tùy Chỉnh Cấu Hình Bài Kiểm Tra
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-[#a6c5e8] mt-1">
-              Lựa chọn số lượng câu, thời gian và phạm vi các nhóm kiến thức theo nhu cầu cá nhân
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left: Count & Time */}
-            <div className="space-y-6">
-              {/* Question Count */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-bold text-[#152230] dark:text-[#f4f8fd] flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4 text-[#4f80b9] dark:text-[#7da7d9]" />
-                    Số lượng câu hỏi:
-                  </label>
-                  <span className="text-base font-extrabold text-[#4f80b9] dark:text-[#7da7d9] px-3 py-1 bg-[#e6f1fc] dark:bg-[#152230] rounded-xl border border-[#d0e4f7] dark:border-[#2e4359]">
-                    {questionCount} câu
-                  </span>
-                </div>
-
-                <input
-                  type="range"
-                  min={5}
-                  max={questions.length}
-                  step={5}
-                  value={questionCount}
-                  onChange={e => setQuestionCount(Number(e.target.value))}
-                  className="w-full accent-[#4f80b9] cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
-                />
-
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  {[10, 20, 30, 50, 100, questions.length].map(val => (
-                    <button
-                      key={val}
-                      onClick={() => setQuestionCount(val)}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors ${
-                        questionCount === val
-                          ? 'bg-[#4f80b9] text-white border-[#4f80b9] font-bold dark:bg-[#4f80b9]'
-                          : 'bg-slate-50 dark:bg-[#152230] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-[#2e4359] hover:bg-slate-100 dark:hover:bg-[#233446]'
-                      }`}
-                    >
-                      {val === questions.length ? `Tất cả (${val})` : `${val} câu`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Duration Minutes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-bold text-[#152230] dark:text-[#f4f8fd] flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#4f80b9] dark:text-[#7da7d9]" />
-                    Thời gian làm bài:
-                  </label>
-                  <span className="text-base font-extrabold text-[#4f80b9] dark:text-[#7da7d9] px-3 py-1 bg-[#e6f1fc] dark:bg-[#152230] rounded-xl border border-[#d0e4f7] dark:border-[#2e4359]">
-                    {durationMinutes === 0 ? 'Không giới hạn' : `${durationMinutes} phút`}
-                  </span>
-                </div>
-
-                <input
-                  type="range"
-                  min={0}
-                  max={120}
-                  step={5}
-                  value={durationMinutes}
-                  onChange={e => setDurationMinutes(Number(e.target.value))}
-                  className="w-full accent-[#4f80b9] cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
-                />
-
-                <div className="flex items-center gap-2 mt-3 flex-wrap">
-                  {[0, 15, 30, 45, 60, 90].map(val => (
-                    <button
-                      key={val}
-                      onClick={() => setDurationMinutes(val)}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-colors ${
-                        durationMinutes === val
-                          ? 'bg-[#4f80b9] text-white border-[#4f80b9] font-bold dark:bg-[#4f80b9]'
-                          : 'bg-slate-50 dark:bg-[#152230] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-[#2e4359] hover:bg-slate-100 dark:hover:bg-[#233446]'
-                      }`}
-                    >
-                      {val === 0 ? 'Tự do' : `${val}p`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Toggles */}
-              <div className="space-y-3 pt-2">
-                <label className="flex items-center justify-between p-3 rounded-xl border border-[#dceeff] dark:border-[#2e4359] hover:bg-[#f4f8fd] dark:hover:bg-[#233446]/50 cursor-pointer transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <Shuffle className="w-4 h-4 text-[#4f80b9] dark:text-[#7da7d9]" />
-                    <div>
-                      <span className="text-sm font-semibold text-[#152230] dark:text-[#f4f8fd]">Xáo trộn thứ tự câu hỏi</span>
-                      <p className="text-[11px] text-slate-500 dark:text-[#a6c5e8]">Đảo ngẫu nhiên vị trí các câu hỏi khi bắt đầu</p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={shuffleQuestions}
-                    onChange={e => setShuffleQuestions(e.target.checked)}
-                    className="w-4 h-4 accent-[#4f80b9] rounded"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between p-3 rounded-xl border border-[#dceeff] dark:border-[#2e4359] hover:bg-[#f4f8fd] dark:hover:bg-[#233446]/50 cursor-pointer transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <Eye className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <div>
-                      <span className="text-sm font-semibold text-[#152230] dark:text-[#f4f8fd]">Chế độ hiển thị đáp án ngay</span>
-                      <p className="text-[11px] text-slate-500 dark:text-[#a6c5e8]">Xem giải thích và kết quả đúng/sai ngay sau khi chọn</p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={immediateFeedback}
-                    onChange={e => setImmediateFeedback(e.target.checked)}
-                    className="w-4 h-4 accent-[#4f80b9] rounded"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Right: Group Selections */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-bold text-[#152230] dark:text-[#f4f8fd] flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-[#4f80b9] dark:text-[#7da7d9]" />
-                  Chọn nhóm câu hỏi:
-                </label>
-                <div className="flex items-center gap-2 text-xs">
-                  <button
-                    onClick={selectAllGroups}
-                    className="text-[#4f80b9] dark:text-[#7da7d9] hover:underline font-semibold"
-                  >
-                    Chọn tất cả
-                  </button>
-                  <span className="text-slate-300 dark:text-slate-700">|</span>
-                  <button
-                    onClick={deselectAllGroups}
-                    className="text-slate-500 dark:text-slate-400 hover:underline"
-                  >
-                    Bỏ chọn
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {groupStats.map(item => {
-                  const isSelected = selectedGroups.includes(item.group);
-                  return (
-                    <div
-                      key={item.group}
-                      onClick={() => toggleGroup(item.group)}
-                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2.5 ${
-                        isSelected
-                          ? 'bg-[#dceeff]/35 dark:bg-[#233446]/60 border-[#4f80b9] dark:border-[#7da7d9] shadow-xs ring-1 ring-[#4f80b9]/30'
-                          : 'bg-white dark:bg-[#1c2c3d] border-[#dceeff] dark:border-[#2e4359] opacity-60 hover:opacity-100 hover:border-[#4f80b9]/50'
-                      }`}
-                    >
-                      {/* Top: Checkbox, Name, and Difficulty Pill */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${
-                              isSelected
-                                ? 'bg-[#4f80b9] border-[#4f80b9] text-white dark:bg-[#4f80b9]'
-                                : 'border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                          </div>
-                          <span className="text-sm font-bold text-[#152230] dark:text-[#f4f8fd]">
-                            Nhóm {item.group}
-                          </span>
-                        </div>
-
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md text-center leading-tight shrink-0 ${
-                            item.diff === 'DỄ'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                              : item.diff === 'TRUNG BÌNH'
-                              ? 'bg-[#fff7cc] dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-[#fde047] dark:border-amber-800'
-                              : 'bg-[#fdf2f4] dark:bg-[#351e24] text-[#b04848] dark:text-[#f0a8a8] border border-[#f5c6cb] dark:border-[#522b34]'
-                          }`}
-                        >
-                          {item.diff}
-                        </span>
-                      </div>
-
-                      {/* Bottom: Count & CDR Badge */}
-                      <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
-                        <span className="text-xs text-slate-500 dark:text-[#a6c5e8] font-medium">
-                          {item.count} câu hỏi
-                        </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#e6f1fc] dark:bg-[#152230] text-[#2f4860] dark:text-[#a6c5e8] border border-[#d0e4f7] dark:border-[#2e4359]">
-                          {item.cdr}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        {/* Step 1: Select Batches (1..5) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-[#4f80b9] text-white text-xs font-extrabold inline-flex items-center justify-center">
+                1
+              </span>
+              Chọn Batch kiến thức ({selectedGroups.length}/5)
+            </label>
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setSelectedGroups([...ALL_BATCH_GROUPS])}
+                className="font-semibold text-[#4f80b9] hover:underline cursor-pointer"
+              >
+                Chọn tất cả
+              </button>
+              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <button
+                type="button"
+                onClick={() => setSelectedGroups([])}
+                className="font-semibold text-slate-500 hover:text-rose-500 cursor-pointer"
+              >
+                Bỏ chọn
+              </button>
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-[#dceeff] dark:border-[#2e4359]">
-            <button
-              onClick={handleStartCustom}
-              disabled={selectedGroups.length === 0}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-2xl bg-[#4f80b9] hover:bg-[#4372a7] active:bg-[#396395] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-base shadow-lg shadow-[#4f80b9]/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <Play className="w-5 h-5 fill-white" />
-              <span>Bắt Đầu Làm Bài Theo Cấu Hình</span>
-            </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {batchStats.map(b => {
+              const isSelected = selectedGroups.includes(b.group);
+              return (
+                <button
+                  key={b.group}
+                  type="button"
+                  onClick={() => toggleGroup(b.group)}
+                  className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#4f80b9]/10 dark:bg-[#4f80b9]/20 border-[#4f80b9] ring-1 ring-[#4f80b9]/40 shadow-xs'
+                      : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)] hover:border-[#4f80b9]/50 opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className={`text-xs font-extrabold px-2 py-0.5 rounded-lg ${
+                          isSelected
+                            ? 'bg-[#4f80b9] text-white'
+                            : 'bg-slate-200/80 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}
+                      >
+                        {b.shortName}
+                      </span>
+                      <span
+                        className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${
+                          isSelected
+                            ? 'bg-[#4f80b9] border-[#4f80b9] text-white'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                      </span>
+                    </div>
+                    <h3 className="text-xs font-bold text-[var(--text-primary)] leading-snug mb-1">
+                      {b.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      {b.desc}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-[#4f80b9] dark:text-[#7da7d9]">
+                      {b.count} câu
+                    </span>
+                    {b.multiCount > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-400 font-semibold">
+                        <CheckSquare className="w-3 h-3" />
+                        {b.multiCount} đa đáp án
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
-          </motion.div>
-        </AnimatePresence>
+
+        {/* Step 2: Optional CĐR & Difficulty filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                Lọc theo Chuẩn đầu ra (CĐR)
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedCdrs([...ALL_CDRS])}
+                className="text-[11px] font-semibold text-[#4f80b9] hover:underline cursor-pointer"
+              >
+                Tất cả
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ALL_CDRS.map(cdr => {
+                const active = selectedCdrs.includes(cdr);
+                const count = questions.filter(q => q.cdr === cdr).length;
+                return (
+                  <button
+                    key={cdr}
+                    type="button"
+                    onClick={() => toggleCdr(cdr)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      active
+                        ? 'bg-[#4f80b9] text-white border-[#4f80b9] shadow-xs'
+                        : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:border-[#4f80b9]/50'
+                    }`}
+                  >
+                    {cdr} <span className="opacity-75">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                Lọc theo Độ khó
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedDifficulties([...ALL_DIFFICULTIES])}
+                className="text-[11px] font-semibold text-[#4f80b9] hover:underline cursor-pointer"
+              >
+                Tất cả
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ALL_DIFFICULTIES.map(diff => {
+                const active = selectedDifficulties.includes(diff);
+                const count = questions.filter(q => q.difficulty === diff).length;
+                return (
+                  <button
+                    key={diff}
+                    type="button"
+                    onClick={() => toggleDifficulty(diff)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      active
+                        ? 'bg-[#4f80b9] text-white border-[#4f80b9] shadow-xs'
+                        : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:border-[#4f80b9]/50'
+                    }`}
+                  >
+                    {diff} <span className="opacity-75">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3: Question Count & Duration */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Question Count */}
+          <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-[#4f80b9]" />
+                Số lượng câu hỏi
+              </label>
+              <span className="px-2.5 py-1 rounded-lg bg-[#4f80b9]/15 text-[#4f80b9] dark:text-[#7da7d9] font-extrabold text-sm font-mono">
+                {effectiveQuestionCount} câu
+              </span>
+            </div>
+            <input
+              type="range"
+              min={5}
+              max={effectiveMax}
+              step={1}
+              value={effectiveQuestionCount}
+              onChange={e => setQuestionCount(Number(e.target.value))}
+              className="w-full accent-[#4f80b9] cursor-pointer"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {[10, 20, 30, 40, 60, effectiveMax].map((preset, idx) => {
+                const val = Math.min(preset, effectiveMax);
+                const label = idx === 5 ? `Tất cả (${effectiveMax})` : `${val} câu`;
+                return (
+                  <button
+                    key={`${idx}-${val}`}
+                    type="button"
+                    onClick={() => setQuestionCount(val)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                      effectiveQuestionCount === val
+                        ? 'bg-[#4f80b9] text-white border-[#4f80b9]'
+                        : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:bg-[var(--hover-bg)]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div className="p-4 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#4f80b9]" />
+                Thời gian làm bài
+              </label>
+              <span className="px-2.5 py-1 rounded-lg bg-[#4f80b9]/15 text-[#4f80b9] dark:text-[#7da7d9] font-extrabold text-sm font-mono">
+                {durationMinutes > 0 ? `${durationMinutes} phút` : 'Không giới hạn'}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={120}
+              step={5}
+              value={durationMinutes}
+              onChange={e => setDurationMinutes(Number(e.target.value))}
+              className="w-full accent-[#4f80b9] cursor-pointer"
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {[0, 15, 30, 45, 60, 90].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setDurationMinutes(mins)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                    durationMinutes === mins
+                      ? 'bg-[#4f80b9] text-white border-[#4f80b9]'
+                      : 'bg-[var(--card-surface)] text-slate-600 dark:text-slate-300 border-[var(--border-subtle)] hover:bg-[var(--hover-bg)]'
+                  }`}
+                >
+                  {mins === 0 ? 'Tự do' : `${mins} phút`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Step 4: Mode toggles & Launch Button */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 pt-3 border-t border-[var(--border-subtle)]">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShuffleQuestions(prev => !prev)}
+              className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                shuffleQuestions
+                  ? 'bg-[#4f80b9]/15 text-[#4f80b9] dark:text-[#7da7d9] border-[#4f80b9]/40'
+                  : 'bg-[var(--bg-canvas)] text-slate-500 border-[var(--border-subtle)]'
+              }`}
+            >
+              <Shuffle className="w-4 h-4" />
+              <span>Trộn thứ tự câu hỏi: {shuffleQuestions ? 'BẬT' : 'TẮT'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setImmediateFeedback(prev => !prev)}
+              className={`inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                immediateFeedback
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40'
+                  : 'bg-[var(--bg-canvas)] text-slate-500 border-[var(--border-subtle)]'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              <span>Xem đáp án ngay (Luyện tập): {immediateFeedback ? 'BẬT' : 'TẮT'}</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleStartCustom}
+            disabled={matchingPoolCount === 0}
+            className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl bg-gradient-to-r from-[#4f80b9] to-[#396395] hover:from-[#4372a7] hover:to-[#2e5682] disabled:opacity-50 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-[#4f80b9]/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+          >
+            <Play className="w-4 h-4 fill-white" />
+            <span>
+              Bắt Đầu Làm Bài ({effectiveQuestionCount} Câu ·{' '}
+              {durationMinutes > 0 ? `${durationMinutes}p` : 'Tự do'})
+            </span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

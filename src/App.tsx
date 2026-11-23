@@ -11,9 +11,9 @@ import { QuestionBankBrowser } from './components/QuestionBankBrowser';
 import { GoodLuckModal } from './components/GoodLuckModal';
 import { CommunityReviewFooter } from './components/CommunityReviewFooter';
 import questionsData from './data/questions.json';
-import { Question, ExamConfig, ActiveExamSession, ExamResult } from './types/quiz';
+import { Question, ExamConfig, ActiveExamSession, ExamResult, UserAnswerValue } from './types/quiz';
 import {
-  generateStandardExam,
+  ALL_CDRS,
   generateCustomExam,
   calculateExamResult
 } from './utils/examEngine';
@@ -128,7 +128,7 @@ export default function App() {
     // Check query params e.g. ?autostart=1
     const params = new URLSearchParams(window.location.search);
     if (params.get('autostart') === '1' && !savedSession) {
-      startStandardExamAuto();
+      startQuickBigDataAuto();
     } else {
       setIsGoodLuckModalOpen(true);
     }
@@ -140,28 +140,29 @@ export default function App() {
     setBookmarks(getBookmarks());
   };
 
-  const startStandardExamAuto = () => {
-    const questions = generateStandardExam(allQuestions, true);
+  const startQuickBigDataAuto = () => {
+    const config: ExamConfig = {
+      mode: 'custom',
+      title: 'Luyện Thi Big Data (40 Câu - 45 Phút)',
+      questionCount: 40,
+      durationMinutes: 45,
+      selectedGroups: [1, 2, 3, 4, 5],
+      selectedCdrs: [...ALL_CDRS],
+      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
+      shuffleQuestions: true,
+      shuffleOptions: false,
+      immediateFeedback: false
+    };
+    const questions = generateCustomExam(allQuestions, config);
     const session: ActiveExamSession = {
       id: `session_${Date.now()}`,
-      config: {
-        mode: 'standard',
-        title: 'Đề Thi Chuẩn SQA (50 Câu - 60 Phút)',
-        questionCount: 50,
-        durationMinutes: 60,
-        selectedGroups: [1, 2, 3, 4, 5, 6],
-        selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-        selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
-        shuffleQuestions: true,
-        shuffleOptions: false,
-        immediateFeedback: false
-      },
+      config,
       questions,
       userAnswers: {},
       flaggedQuestions: {},
       startedAt: Date.now(),
-      totalDurationSeconds: 60 * 60,
-      remainingSeconds: 60 * 60,
+      totalDurationSeconds: 45 * 60,
+      remainingSeconds: 45 * 60,
       lastActiveAt: Date.now(),
       currentQuestionIndex: 0,
       isCompleted: false
@@ -175,13 +176,7 @@ export default function App() {
 
   // Start new exam from config
   const handleStartExam = (config: ExamConfig) => {
-    let examQuestions: Question[];
-
-    if (config.mode === 'standard') {
-      examQuestions = generateStandardExam(allQuestions, config.shuffleQuestions);
-    } else {
-      examQuestions = generateCustomExam(allQuestions, config);
-    }
+    let examQuestions: Question[] = generateCustomExam(allQuestions, config);
 
     if (examQuestions.length === 0) {
       examQuestions = allQuestions.slice(0, 10);
@@ -220,8 +215,8 @@ export default function App() {
       title: `${title} (${questionsToPractice.length} câu)`,
       questionCount: questionsToPractice.length,
       durationMinutes: 0, // untimed for deep practice
-      selectedGroups: [1, 2, 3, 4, 5, 6],
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
+      selectedGroups: [1, 2, 3, 4, 5],
+      selectedCdrs: [...ALL_CDRS],
       selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
       shuffleQuestions: false,
       shuffleOptions: false,
@@ -249,47 +244,15 @@ export default function App() {
     setActiveTab('exam');
   };
 
-  // Start a fresh standard exam directly
+  // Go to custom exam builder to start a new exam
   const handleStartNewExam = () => {
-    const questions = generateStandardExam(allQuestions, true);
-    const config: ExamConfig = {
-      mode: 'standard',
-      title: 'Đề Thi Chuẩn SQA (50 Câu - 60 Phút)',
-      questionCount: 50,
-      durationMinutes: 60,
-      selectedGroups: [1, 2, 3, 4, 5, 6],
-      selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
-      selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
-      shuffleQuestions: true,
-      shuffleOptions: false,
-      immediateFeedback: false
-    };
-
-    const newSession: ActiveExamSession = {
-      id: `session_${Date.now()}`,
-      config,
-      questions,
-      userAnswers: {},
-      flaggedQuestions: {},
-      startedAt: Date.now(),
-      totalDurationSeconds: 60 * 60,
-      remainingSeconds: 60 * 60,
-      lastActiveAt: Date.now(),
-      currentQuestionIndex: 0,
-      isCompleted: false
-    };
-
-    saveActiveSession(newSession);
-    setActiveSession(newSession);
-    setIsExamActive(true);
-    setCurrentResult(null);
-    setActiveTab('exam');
+    handleGoHome();
   };
 
   // Retake exact same questions from previous result
   const handleRetakeSameQuestions = (result: ExamResult) => {
     const questions = result.details.map(d => d.question);
-    const durationSec = result.totalDurationSeconds > 0 ? result.totalDurationSeconds : 3600;
+    const durationSec = result.totalDurationSeconds > 0 ? result.totalDurationSeconds : 0;
 
     const newSession: ActiveExamSession = {
       id: `session_retake_${Date.now()}`,
@@ -297,9 +260,9 @@ export default function App() {
         mode: result.mode,
         title: `${result.title} (Làm Lại)`,
         questionCount: questions.length,
-        durationMinutes: Math.round(durationSec / 60) || 60,
-        selectedGroups: [1, 2, 3, 4, 5, 6],
-        selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
+        durationMinutes: durationSec > 0 ? Math.round(durationSec / 60) : 0,
+        selectedGroups: [1, 2, 3, 4, 5],
+        selectedCdrs: [...ALL_CDRS],
         selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
         shuffleQuestions: false,
         shuffleOptions: false,
@@ -325,16 +288,19 @@ export default function App() {
 
   // Continue an incomplete exam session from results
   const handleContinueIncompleteExam = (result: ExamResult) => {
-    const userAnswers: Record<string, number> = {};
+    const userAnswers: Record<string, UserAnswerValue> = {};
     result.details.forEach(d => {
-      if (d.userAnswer !== null) {
+      if (d.userAnswer !== null && d.userAnswersList.length > 0) {
         userAnswers[d.question.id] = d.userAnswer;
       }
     });
 
-    const firstUnansweredIndex = result.details.findIndex(d => d.userAnswer === null);
+    const firstUnansweredIndex = result.details.findIndex(d => d.isSkipped);
     const startIndex = firstUnansweredIndex >= 0 ? firstUnansweredIndex : 0;
-    const remainingTime = Math.max(result.totalDurationSeconds - result.timeSpentSeconds, 300);
+    const remainingTime =
+      result.totalDurationSeconds > 0
+        ? Math.max(result.totalDurationSeconds - result.timeSpentSeconds, 300)
+        : 0;
 
     const resumedSession: ActiveExamSession = {
       id: `session_resume_${Date.now()}`,
@@ -342,9 +308,9 @@ export default function App() {
         mode: result.mode,
         title: `${result.title} (Tiếp Tục)`,
         questionCount: result.totalQuestions,
-        durationMinutes: Math.round(remainingTime / 60) || 30,
-        selectedGroups: [1, 2, 3, 4, 5, 6],
-        selectedCdrs: ['CĐR 1.1', 'CĐR 2.1'],
+        durationMinutes: remainingTime > 0 ? Math.round(remainingTime / 60) : 0,
+        selectedGroups: [1, 2, 3, 4, 5],
+        selectedCdrs: [...ALL_CDRS],
         selectedDifficulties: ['DỄ', 'TRUNG BÌNH', 'KHÓ'],
         shuffleQuestions: false,
         shuffleOptions: false,
@@ -354,7 +320,7 @@ export default function App() {
       userAnswers,
       flaggedQuestions: {},
       startedAt: Date.now() - result.timeSpentSeconds * 1000,
-      totalDurationSeconds: result.totalDurationSeconds || 3600,
+      totalDurationSeconds: result.totalDurationSeconds,
       remainingSeconds: remainingTime,
       lastActiveAt: Date.now(),
       currentQuestionIndex: startIndex,
